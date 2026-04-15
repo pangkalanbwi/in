@@ -41,6 +41,24 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
+        /* --- SKELETON LOADING (NEW UX) --- */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .skeleton-bg {
+            background: linear-gradient(to right, #f1f5f9 8%, #e2e8f0 18%, #f1f5f9 33%);
+            background-size: 2000px 100%; 
+            animation: shimmer 1.5s infinite linear;
+        }
+        .skeleton-card {
+            background: white; border-radius: 1.875rem; border: 1px solid rgba(0,0,0,0.02); padding: 1.25rem;
+            height: 350px;
+        }
+        .skeleton-img { height: 140px; width: 100%; border-radius: 1.25rem; margin-bottom: 1rem; }
+        .skeleton-title { height: 20px; width: 70%; margin-bottom: 0.5rem; border-radius: 0.5rem; }
+        .skeleton-price { height: 16px; width: 30%; margin-top: 1rem; border-radius: 0.5rem; }
+
         /* --- COMPONENT STYLING --- */
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
@@ -52,6 +70,10 @@
         /* Custom Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- SNAP SCROLLING (UX Improvement) --- */
+        .snap-x { scroll-snap-type: x mandatory; }
+        .snap-center { scroll-snap-align: center; }
 
         /* --- SIDEBAR --- */
         .sidebar-link {
@@ -133,16 +155,23 @@
         }
         #global-backdrop.show { opacity: 1; pointer-events: auto; }
 
-        /* --- MENU ITEMS --- */
+        /* --- MENU ITEMS (UX Improvement) --- */
         .menu-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             background: white;
-            border: 1px solid rgba(0,0,0,0.03);
+            /* Remove border for cleaner look */
+            border: none; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
         }
-        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px -5px rgba(0,0,0,0.08); }
+        .menu-card:hover { 
+            transform: translateY(-6px); 
+            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.08);
+        }
         
         .filter-chip {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Snap scroll alignment */
+            scroll-snap-align: center;
         }
         .filter-chip.active {
             background: var(--p-primary); 
@@ -161,7 +190,7 @@
         }
         .faq-item[open] { border-left-color: var(--p-primary); background: #f0fdf4; }
         
-        /* --- MEMBER AREA STYLES (NEW PRO DESIGN) --- */
+        /* --- MEMBER AREA STYLES --- */
         .auth-container {
             background: white;
             border-radius: 2rem;
@@ -341,7 +370,10 @@
                     <div class="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex items-center px-8 lg:px-16">
                         <div class="max-w-md lg:max-w-lg">
                             <p class="text-[#ccff00] font-black tracking-[0.2em] text-[10px] lg:text-xs uppercase mb-4 animate-pulse">Best Nutrition With</p>
-                            <h2 class="hero-font text-4xl lg:text-7xl text-white italic leading-none mb-6 lg:mb-8 text-[1.8rem]">Pangkalan <br><span class="text-[#52bc1a]">Natural Resto</span></h2>
+                            <!-- Added drop-shadow-md for better readability -->
+                            <h2 class="hero-font text-4xl lg:text-7xl text-white italic leading-none mb-6 lg:mb-8 text-[1.8rem] drop-shadow-md">
+                                Pangkalan <br><span class="text-[#52bc1a] drop-shadow-lg">Natural Resto</span>
+                            </h2>
                             <button onclick="scrollToGrid()" class="bg-[#52bc1a] hover:bg-[#3a8e12] text-white px-8 lg:px-10 py-4 lg:py-5 rounded-2xl font-bold text-[11px] lg:text-sm shadow-xl shadow-emerald-900/20 transition transform active:scale-95">
                                 Pesan Sekarang <i data-lucide="arrow-right" class="inline ml-2 w-4 h-4"></i>
                             </button>
@@ -349,8 +381,8 @@
                     </div>
                 </section>
 
-                <!-- Filters (Mobile) -->
-                <div class="mobile-only flex gap-3 overflow-x-auto no-scrollbar mb-8 -mx-4 px-4" id="mobile-filters">
+                <!-- Filters (Mobile) with Snap Scrolling -->
+                <div class="mobile-only flex gap-3 overflow-x-auto no-scrollbar snap-x mb-8 -mx-4 px-4 scroll-pl-4" id="mobile-filters">
                     <button onclick="filterMenu('all')" class="filter-chip active bg-white border border-slate-200 px-5 py-2.5 rounded-full text-[10px] font-bold text-slate-400 whitespace-nowrap" id="mf-all">SEMUA</button>
                     <button onclick="filterMenu('Makanan')" class="filter-chip bg-white border border-slate-200 px-5 py-2.5 rounded-full text-[10px] font-bold text-slate-400 whitespace-nowrap" id="mf-Makanan">MAKANAN</button>
                     <button onclick="filterMenu('Segeran')" class="filter-chip bg-white border border-slate-200 px-5 py-2.5 rounded-full text-[10px] font-bold text-slate-400 whitespace-nowrap" id="mf-Segeran">SEGERAN</button>
@@ -715,7 +747,6 @@
             </div>
         </div>
 
-        <!-- LOGIN MODAL (For Staff) -->
         <div id="modal-login" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-6 text-center">
             <div class="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl relative border border-white/20">
                 <button onclick="closeModal('modal-login')" class="absolute top-8 right-8 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition"><i data-lucide="x" size="18"></i></button>
@@ -731,7 +762,6 @@
             </div>
         </div>
 
-        <!-- FORGOT PASSWORD MODAL -->
         <div id="modal-forgot" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-6 text-center">
             <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl relative border border-white/20">
                 <button onclick="closeModal('modal-forgot')" class="absolute top-8 right-8 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition"><i data-lucide="x" size="18"></i></button>
@@ -811,22 +841,61 @@
         return (!u || u === "" || u === "*") ? "https://images.unsplash.com/photo-1541014741259-df529411b96a?w=400" : u;
     }
 
+    /* --- UX IMPROVEMENT: SKELETON LOADING --- */
+    function showSkeleton(count) {
+        count = count || 4;
+        var grid = document.getElementById('grid-menu');
+        if (!grid) return;
+        var html = '';
+        for (var i = 0; i < count; i++) {
+            html += '<div class="skeleton-card skeleton-bg"><div class="skeleton-img"></div><div class="skeleton-title"></div><div class="skeleton-title-sm"></div><div class="skeleton-price"></div></div>';
+        }
+        grid.innerHTML = html;
+    }
+
     function renderMenuGrid(items) {
         items = items || state.menu;
         var grid = document.getElementById('grid-menu');
         if (!grid) return;
+        
+        // UX: Handle Empty State
+        if (!items || items.length === 0) {
+            // Check if we are in search mode to show helpful message
+            var q = (document.getElementById('search-menu').value || document.getElementById('search-menu-mobile').value || '').toLowerCase();
+            
+            if (q.length > 0) {
+                // SEARCH EMPTY STATE
+                grid.innerHTML = '<div class="col-span-full flex flex-col items-center justify-center py-20 text-center opacity-70">'
+                    + '<i data-lucide="search-x" size="48" class="text-slate-300 mb-4"></i>'
+                    + '<h3 class="text-lg font-bold text-slate-700 mb-2">Menu tidak ditemukan</h3>'
+                    + '<p class="text-sm text-slate-400 mb-6">Kami tidak punya menu "' + q + '".</p>'
+                    + '<button onclick="document.getElementById(\'search-menu\').value=\'\';document.getElementById(\'search-menu-mobile\').value=\'\';filterMenu(\'all\');" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-full font-bold text-xs hover:bg-slate-200 transition">Reset Pencarian</button>'
+                    + '</div>';
+            } else {
+                // GENERAL EMPTY STATE
+                grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 italic text-xs font-bold uppercase">Belum ada data menu</div>';
+            }
+            lucide.createIcons();
+            return;
+        }
+
+        // Filter active items
         var active = [];
         for (var i = 0; i < items.length; i++) {
             var s = items[i].Status;
             if (!s || s === 'Aktif' || s === 'aktif' || s === 'AKTIF') active.push(items[i]);
         }
-        if (active.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 text-xs font-bold uppercase">Menu Tidak Ditemukan</div>'; return; }
+        
+        if (active.length === 0) {
+             grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 italic text-xs font-bold uppercase">Menu tidak tersedia saat ini</div>';
+             return;
+        }
         
         var html = '';
         for (var j = 0; j < active.length; j++) {
             var item = active[j];
-            html += '<div class="menu-card rounded-[30px] overflow-hidden group cursor-pointer">'
-                + '<div onclick="openDetail(\'' + item.ID + '\')" class="h-36 lg:h-44 bg-slate-100 relative overflow-hidden">'
+            html += '<div class="menu-card rounded-[30px] overflow-hidden group cursor-pointer bg-white">'
+                + '<div onclick="openDetail(\'' + item.ID + '\')" class="h-36 lg:h-44 bg-slate-100 relative overflow-hidden rounded-t-[25px]">'
                 + '<img src="' + getImagePath(item.ImageURL) + '" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out">'
                 + '<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-300"></div>'
                 + '</div><div class="p-4">'
@@ -844,6 +913,10 @@
     function filterMenu(c) {
         state.isSearching = false;
         if (!document.getElementById('view-dashboard').classList.contains('active')) router('dashboard');
+        
+        // UX: Show skeleton immediately for perceived speed
+        showSkeleton(4);
+
         document.querySelectorAll('.filter-chip').forEach(function(b) { b.classList.remove('active'); });
         var mfBtn = document.getElementById('mf-' + c); if (mfBtn) mfBtn.classList.add('active');
         document.querySelectorAll('.submenu-item').forEach(function(b) { b.classList.remove('active'); });
@@ -858,9 +931,17 @@
             setTimeout(function() {
                 img.src = heroImages[c] || heroImages.all;
                 img.style.opacity = '1';
+                setTimeout(function() { img.style.transition = ''; }, 300);
             }, 200);
         }
-        renderMenuGrid(c === 'all' ? state.menu : state.menu.filter(function(m) { return m.Kategori === c; }));
+
+        // Filter Logic
+        var filteredItems = (c === 'all') ? state.menu : state.menu.filter(function(m) { return m.Kategori === c; });
+        
+        // Slight delay to allow skeleton to be seen (makes app feel responsive)
+        setTimeout(function() {
+            renderMenuGrid(filteredItems);
+        }, 300);
     }
 
     function toggleSidebarMenu() {
@@ -945,19 +1026,24 @@
 
     function searchMenu() {
         var q = (document.getElementById('search-menu').value || document.getElementById('search-menu-mobile').value || '').toLowerCase();
+        
         if (q.length > 0) {
             state.isSearching = true;
             document.querySelectorAll('.filter-chip').forEach(function(b) { b.classList.remove('active'); });
             document.querySelectorAll('.submenu-item').forEach(function(b) { b.classList.remove('active'); });
+            // UX: Show skeleton while searching "feels" faster
+            showSkeleton(4);
         } else {
             state.isSearching = false;
             filterMenu('all'); 
             return;
         }
 
-        renderMenuGrid(state.menu.filter(function(m) {
+        var results = state.menu.filter(function(m) {
             return m.Nama.toLowerCase().indexOf(q) !== -1 || m.Kategori.toLowerCase().indexOf(q) !== -1;
-        }));
+        });
+        
+        renderMenuGrid(results);
     }
 
     function parseOrderItems(o) {
@@ -1072,7 +1158,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Logic for Modal Login (Staff)
     function processLoginModal() {
         var ci = document.getElementById('l-credential-modal');
         var pi = document.getElementById('l-pass-modal');
@@ -1111,7 +1196,6 @@
         }
     }
 
-    // Logic for Inline Login (Member)
     function processLogin() {
         var ci = document.getElementById('l-credential');
         var pi = document.getElementById('l-pass');
@@ -1162,7 +1246,6 @@
         if(!input) return notify("Masukkan email atau WhatsApp");
         
         notify("Mengirim instruksi reset...");
-        // Asumsi backend memiliki action 'reset_password' yang menerima 'input'
         callCloud('reset_password', { input: input }).then(function(s) {
             if(s) {
                 notify("Instruksi dikirim ke " + input);
@@ -1181,26 +1264,22 @@
         
         var hav = document.getElementById('header-avatar'); if (hav) hav.src = avatarUrl;
 
-        // Logic Tampilan Guest vs Member
         var guestContainer = document.getElementById('guest-view-container');
         var memberDashboard = document.getElementById('member-dashboard');
 
         if (guestContainer) guestContainer.classList.toggle('hidden', isU);
         if (memberDashboard) memberDashboard.classList.toggle('hidden', !isU);
 
-        // Member Dashboard Stats
         if (isU) {
             var mAv = document.getElementById('u-avatar-member'); if (mAv) mAv.src = avatarUrl;
             var mName = document.getElementById('u-name-member'); if (mName) mName.innerText = state.user.Nama;
             
-            // Calculate stats
             var userTrx = state.transaksi.filter(function(t) { return t.Pelanggan === state.user.Nama; });
             var totalSpend = userTrx.reduce(function(a, b) { return a + (b.Total || 0); }, 0);
             
             var statTrx = document.getElementById('member-stat-trx'); if (statTrx) statTrx.innerText = userTrx.length;
             var statSpend = document.getElementById('member-stat-spend'); if (statSpend) statSpend.innerText = "Rp " + totalSpend.toLocaleString();
 
-            // Calculate Level & Progress
             var levelBadge = document.getElementById('u-level-badge');
             var progressBar = document.getElementById('level-progress-bar');
             var progressText = document.getElementById('level-status-text');
@@ -1208,13 +1287,13 @@
             
             var currentLevel = 'Bronze';
             var currentThreshold = 0;
-            var nextThreshold = 200000; // Silver
+            var nextThreshold = 200000; 
             var nextLevelName = 'Silver Member';
 
             if (totalSpend >= 500000) {
                 currentLevel = 'Gold';
                 currentThreshold = 500000;
-                nextThreshold = 999999999; // Max
+                nextThreshold = 999999999;
                 nextLevelName = 'Top Level';
             } else if (totalSpend >= 200000) {
                 currentLevel = 'Silver';
@@ -1239,7 +1318,6 @@
             }
         }
 
-        // Sidebar & Nav
         var ats = document.getElementById('auth-text-side'); if (ats) ats.innerText = isU ? "Keluar" : "Akses Staf";
 
         var ns = document.getElementById('nav-staff');
