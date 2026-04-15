@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pesan Antar - RM Pangkalan</title>
+    
+    <meta name="theme-color" content="#52bc1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root { 
+            --p-accent: #52bc1a; --p-highlight: #ccff00; --p-soft: #f1f4ed; --p-text: #2d342d;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; background: var(--p-soft); color: var(--p-text);
+            -webkit-tap-highlight-color: transparent; overflow-x: hidden; margin: 0;
+        }
+        .hero-font { font-family: 'Playfair Display', serif; }
+
+        /* Progress Steps */
+        .step-track { display: flex; align-items: center; justify-content: center; gap: 0; }
+        .step-dot {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 14px; font-weight: 800; border: 3px solid #e2e8f0;
+            background: white; color: #94a3b8; transition: all 0.4s; position: relative; z-index: 2; flex-shrink: 0;
+        }
+        .step-dot.active { border-color: var(--p-accent); background: var(--p-accent); color: white; box-shadow: 0 4px 15px rgba(82,188,26,0.3); }
+        .step-dot.done { border-color: var(--p-accent); background: var(--p-accent); color: white; }
+        .step-line { height: 3px; flex: 1; background: #e2e8f0; transition: background 0.4s; min-width: 30px; }
+        .step-line.done { background: var(--p-accent); }
+        .step-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; margin-top: 8px; text-align: center; transition: color 0.4s; }
+        .step-label.active { color: var(--p-accent); }
+
+        /* Form Panels */
+        .form-panel { display: none; animation: panelIn 0.4s ease; }
+        .form-panel.active { display: block; }
+        @keyframes panelIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Filter Chip */
+        .fchip { flex-shrink:0; padding:8px 16px; border-radius:999px; font-size:10px; font-weight:700; white-space:nowrap; background:white; color:#94a3b8; border:2px solid #f1f5f9; transition:all 0.2s; cursor:pointer; text-transform:uppercase; letter-spacing:0.04em; }
+        .fchip.active { background:var(--p-accent); color:white; border-color:var(--p-accent); box-shadow:0 3px 12px rgba(82,188,26,0.25); }
+
+        /* Menu Card */
+        .mcard { background:white; border-radius:24px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid transparent; transition:all 0.25s; cursor:pointer; }
+        .mcard:active { transform:scale(0.97); }
+        .mcard.in-cart { border-color:var(--p-accent); }
+        .mcard.in-cart .mcard-badge { background:var(--p-accent); color:white; }
+
+        /* Cart Item */
+        .cart-row { display:flex; align-items:center; gap:14px; padding:14px 16px; background:white; border-radius:20px; border:1px solid #f1f5f9; }
+        .cart-row .minus, .cart-row .plus { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; cursor:pointer; transition:0.2s; }
+        .cart-row .minus { background:#fef2f2; color:#ef4444; }
+        .cart-row .plus { background:#f0fdf4; color:var(--p-accent); }
+        .cart-row .minus:active, .cart-row .plus:active { transform:scale(0.85); }
+
+        /* Selfie Canvas */
+        .selfie-frame {
+            width: 240px; height: 320px; border-radius: 32px; overflow: hidden;
+            border: 4px solid #e2e8f0; position: relative; margin: 0 auto;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        .selfie-frame video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+        .selfie-frame .overlay-guide {
+            position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;
+            border: 3px dashed rgba(82,188,26,0.3); border-radius:28px; margin:12px;
+        }
+        .selfie-frame .selfie-label {
+            position:absolute; bottom:20px; left:0; right:0; text-align:center;
+            font-size:10px; font-weight:800; color:rgba(82,188,26,0.5); text-transform:uppercase; letter-spacing:0.15em;
+        }
+        .selfie-captured { width:100%; height:100%; object-fit:cover; }
+
+        /* GPS Pulse */
+        .gps-pulse { width:14px; height:14px; border-radius:50%; background:#22c55e; position:relative; }
+        .gps-pulse::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #22c55e; animation:gpsPulse 1.5s ease infinite; }
+        @keyframes gpsPulse { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(1.8);opacity:0} }
+
+        /* Success */
+        .success-check { width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,#52bc1a,#22c55e); display:flex; align-items:center; justify-content:center; margin:0 auto; animation:popIn 0.5s ease; }
+        @keyframes popIn { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+
+        /* Toast */
+        #toast { position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:#0f172a; color:white; padding:14px 28px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; z-index:9999; opacity:0; pointer-events:none; transition:opacity 0.3s; box-shadow:0 15px 40px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.08); white-space:nowrap; }
+
+        /* Input */
+        .pinput { width:100%; padding:16px 20px; background:white; border:2px solid #f1f5f9; border-radius:20px; font-size:14px; outline:none; font-family:inherit; font-weight:500; transition:border-color 0.2s; }
+        .pinput:focus { border-color:var(--p-accent); }
+        .pinput::placeholder { color:#cbd5e1; }
+
+        .no-scrollbar::-webkit-scrollbar { display:none; }
+    </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
+    <div class="max-w-2xl mx-auto flex items-center justify-between px-5 py-4">
+        <button onclick="goBack()" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i data-lucide="arrow-left" size="20"></i>
+        </button>
+        <div class="text-center">
+            <p class="hero-font text-lg font-bold text-slate-800 leading-none">Pesan Antar</p>
+            <p class="text-[9px] text-[#52bc1a] font-bold uppercase tracking-[0.2em]">RM Pangkalan Delivery</p>
+        </div>
+        <div class="w-10"></div>
+    </div>
+    <!-- Progress -->
+    <div class="max-w-2xl mx-auto px-8 pb-5">
+        <div class="step-track">
+            <div class="text-center flex flex-col items-center">
+                <div class="step-dot active" id="dot-1">1</div>
+                <div class="step-label active" id="lbl-1">Menu</div>
+            </div>
+            <div class="step-line" id="line-1"></div>
+            <div class="text-center flex flex-col items-center">
+                <div class="step-dot" id="dot-2">2</div>
+                <div class="step-label" id="lbl-2">Alamat</div>
+            </div>
+            <div class="step-line" id="line-2"></div>
+            <div class="text-center flex flex-col items-center">
+                <div class="step-dot" id="dot-3">3</div>
+                <div class="step-label" id="lbl-3">Verifikasi</div>
+            </div>
+            <div class="step-line" id="line-3"></div>
+            <div class="text-center flex flex-col items-center">
+                <div class="step-dot" id="dot-4">4</div>
+                <div class="step-label" id="lbl-4">Kirim</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-2xl mx-auto px-5 pb-10">
+
+    <!-- ========== STEP 1: PILIH MENU ========== -->
+    <div class="form-panel active" id="panel-1">
+        <!-- Search -->
+        <div class="flex items-center bg-white rounded-2xl px-5 py-3.5 shadow-sm mb-5 border border-slate-100 focus-within:border-[#52bc1a] transition">
+            <i data-lucide="search" size="18" class="text-slate-400"></i>
+            <input type="text" id="srch" oninput="renderStep1()" placeholder="Cari menu..." class="bg-transparent border-none outline-none text-sm ml-3 w-full font-medium">
+        </div>
+        <!-- Filter -->
+        <div class="flex gap-2.5 overflow-x-auto no-scrollbar mb-6 -mx-1 px-1" id="filters">
+            <button onclick="setCat('all')" class="fchip active" id="fc-all">Semua</button>
+            <button onclick="setCat('Makanan')" class="fchip" id="fc-Makanan">Makanan</button>
+            <button onclick="setCat('Segeran')" class="fchip" id="fc-Segeran">Segeran</button>
+            <button onclick="setCat('Wedangan')" class="fchip" id="fc-Wedangan">Wedangan</button>
+            <button onclick="setCat('Camilan')" class="fchip" id="fc-Camilan">Camilan</button>
+        </div>
+        <!-- Grid -->
+        <div id="menu-grid" class="space-y-3"></div>
+        <!-- Cart Summary Floating -->
+        <div id="cart-float" class="fixed bottom-0 left-0 right-0 z-50 hidden">
+            <div class="max-w-2xl mx-auto px-5 pb-6">
+                <div class="bg-white rounded-[28px] p-5 shadow-2xl border border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-[#52bc1a] flex items-center justify-center text-white relative">
+                            <i data-lucide="shopping-bag" size="22"></i>
+                            <span id="float-count" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">0</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium">Total Pesanan</p>
+                            <p id="float-total" class="text-lg font-black text-slate-800">Rp 0</p>
+                        </div>
+                    </div>
+                    <button onclick="goStep(2)" class="bg-[#52bc1a] text-white px-7 py-4 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition flex items-center gap-2">
+                        Lanjut <i data-lucide="arrow-right" size="16"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== STEP 2: ALAMAT PENGANTARAN ========== -->
+    <div class="form-panel" id="panel-2">
+        <div class="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 space-y-6">
+            <div>
+                <h3 class="text-xl font-black text-slate-800 mb-1">Alamat Pengantaran</h3>
+                <p class="text-xs text-slate-400 font-medium">Pastikan alamat lengkap agar kurir mudah menemukan lokasi Anda.</p>
+            </div>
+
+            <!-- GPS -->
+            <div id="gps-box" onclick="captureGPS()" class="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border-2 border-transparent active:border-[#52bc1a]">
+                <div id="gps-icon" class="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center text-slate-400 flex-shrink-0 transition">
+                    <i data-lucide="map-pin" size="22"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-slate-700" id="gps-text">Aktifkan Lokasi GPS</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5" id="gps-coord">Ketuk untuk mendeteksi koordinat otomatis</p>
+                </div>
+                <i data-lucide="chevron-right" size="18" class="text-slate-300 flex-shrink-0"></i>
+            </div>
+
+            <input type="text" id="inp-nama" class="pinput" placeholder="Nama Lengkap Penerima *">
+            <input type="tel" id="inp-wa" class="pinput" placeholder="No. WhatsApp Aktif *">
+            <textarea id="inp-alamat" class="pinput" rows="3" placeholder="Alamat Lengkap (Jalan, RT/RW, Kelurahan, Kecamatan) *" style="resize:none"></textarea>
+            <input type="text" id="inp-catatan" class="pinput" placeholder="Catatan Tambahan (opsional)">
+
+            <!-- Delivery Fee -->
+            <div class="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="bike" size="20" class="text-[#52bc1a]"></i>
+                        <div>
+                            <p class="text-xs font-bold text-slate-700">Biaya Pengiriman</p>
+                            <p class="text-[10px] text-slate-400" id="fee-note">Gratis radius 1km dari restoran</p>
+                        </div>
+                    </div>
+                    <p class="text-lg font-black text-[#52bc1a]" id="delivery-fee">Rp 0</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="goStep(1)" class="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-xs font-bold text-slate-400 bg-white active:scale-95 transition flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-left" size="16"></i> Kembali
+                </button>
+                <button onclick="goStep(3)" id="btn-to-step3" class="flex-[2] py-4 rounded-2xl bg-[#52bc1a] text-white text-xs font-black shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                    Verifikasi Pesanan <i data-lucide="arrow-right" size="16"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== STEP 3: VERIFIKASI SELFIE ========== -->
+    <div class="form-panel" id="panel-3">
+        <div class="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 space-y-6 text-center">
+            <div>
+                <h3 class="text-xl font-black text-slate-800 mb-1">Verifikasi Pesanan</h3>
+                <p class="text-xs text-slate-400 font-medium">Ambil selfie dengan latar belakang alamat pengantaran. Ini membantu kurir memverifikasi lokasi Anda.</p>
+            </div>
+
+            <!-- Camera Frame -->
+            <div class="selfie-frame mx-auto" id="selfie-frame">
+                <video id="selfie-video" autoplay playsinline muted></video>
+                <div class="overlay-guide"></div>
+                <div class="selfie-label">Arahkan kamera ke depan rumah</div>
+            </div>
+
+            <div id="selfie-captured-wrap" class="hidden">
+                <div class="selfie-frame mx-auto">
+                    <img id="selfie-captured" class="selfie-captured">
+                    <div class="overlay-guide" style="border-color:rgba(34,197,94,0.5)"></div>
+                    <div class="selfie-label" style="color:rgba(34,197,94,0.7)">Foto terambil</div>
+                </div>
+                <button onclick="retakeSelfie()" class="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#52bc1a] transition flex items-center justify-center gap-2 mx-auto">
+                    <i data-lucide="refresh-cw" size="14"></i> Ambil Ulang
+                </button>
+            </div>
+
+            <div id="selfie-btns" class="space-y-3">
+                <button onclick="startCamera()" id="btn-camera" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm shadow-lg active:scale-95 transition flex items-center justify-center gap-3">
+                    <i data-lucide="camera" size="20"></i> Buka Kamera
+                </button>
+                <button onclick="captureSelfie()" id="btn-capture" class="w-full py-4 rounded-2xl bg-[#52bc1a] text-white font-black text-sm shadow-lg active:scale-95 transition hidden flex items-center justify-center gap-3">
+                    <i data-lucide="aperture" size="20"></i> Ambil Foto Sekarang
+                </button>
+            </div>
+
+            <p class="text-[10px] text-slate-300 font-medium">Foto hanya digunakan untuk verifikasi pengantaran dan tidak dipublikasikan.</p>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="goStep(2)" class="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-xs font-bold text-slate-400 bg-white active:scale-95 transition flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-left" size="16"></i> Kembali
+                </button>
+                <button onclick="submitOrder()" id="btn-submit" class="flex-[2] py-4 rounded-2xl bg-slate-900 text-white text-xs font-black shadow-xl active:scale-95 transition flex items-center justify-center gap-2">
+                    Kirim Pesanan <i data-lucide="send" size="16"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== STEP 4: SUKSES ========== -->
+    <div class="form-panel" id="panel-4">
+        <div class="bg-white rounded-[32px] p-10 shadow-sm border border-slate-100 text-center" style="min-height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div class="success-check mb-8">
+                <i data-lucide="check" size="44" class="text-white"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-2">Pesanan Terkirim!</h3>
+            <p class="text-sm text-slate-400 mb-2">Kurir kami akan segera mengantarkan pesanan Anda.</p>
+            <p class="text-[10px] text-slate-300 mb-10">Anda akan menerima konfirmasi melalui WhatsApp.</p>
+            
+            <div class="bg-slate-50 rounded-2xl p-6 text-left w-full mb-8 space-y-3">
+                <div class="flex justify-between text-xs"><span class="text-slate-400 font-medium">ID Pesanan</span><span class="font-bold text-slate-700" id="s-id">-</span></div>
+                <div class="flex justify-between text-xs"><span class="text-slate-400 font-medium">Total Bayar</span><span class="font-black text-[#52bc1a] text-sm" id="s-total">-</span></div>
+                <div class="flex justify-between text-xs"><span class="text-slate-400 font-medium">Ongkos Kirim</span><span class="font-bold text-slate-700" id="s-fee">-</span></div>
+                <div class="border-t border-dashed border-slate-200 pt-3 flex justify-between"><span class="text-slate-400 font-medium text-xs">Grand Total</span><span class="font-black text-slate-800 text-base" id="s-grand">-</span></div>
+            </div>
+
+            <button onclick="goBack()" class="w-full py-5 rounded-2xl bg-[#52bc1a] text-white font-black text-sm shadow-xl active:scale-95 transition flex items-center justify-center gap-2">
+                Kembali ke Menu Utama <i data-lucide="home" size="18"></i>
+            </button>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// ================================================================
+// STATE
+// ================================================================
+var DEFAULT_API = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
+var menuData = [];
+var cart = [];
+var currentCat = 'all';
+var gpsLat = '';
+var gpsLng = '';
+var selfieBase64 = '';
+var cameraStream = null;
+var currentStep = 1;
+
+var FALLBACK = [
+    { ID:"M01", Nama:"Sego Berkat Pangkalan", Kategori:"Makanan", Harga:85000, Deskripsi:"Nasi, urap-urap, sambel goreng tempe, telur, ayam betutu, sambal", ImageURL:"https://lh3.googleusercontent.com/d/1qn4drNm_ytPq-JIKVyjsHwWUz_OzZfWe", Status:"Aktif" },
+    { ID:"M02", Nama:"Bebek Pangkalan", Kategori:"Makanan", Harga:30000, Deskripsi:"Nasi, bebek goreng, timun, terong, sayur, sambal", ImageURL:"https://lh3.googleusercontent.com/d/1_MUfp_GgMZHQwmPTbVXcLKWOIXz1Qvyp", Status:"Aktif" },
+    { ID:"M03", Nama:"Lele Pangkalan", Kategori:"Makanan", Harga:18000, Deskripsi:"Nasi, lele goreng, timun, sayur, terong, sambal", ImageURL:"https://lh3.googleusercontent.com/d/1V-zhwlL-2G9EXl4beys3nN1Om1-WkEDt", Status:"Aktif" },
+    { ID:"S02", Nama:"Happy Soda", Kategori:"Segeran", Harga:12000, Deskripsi:"Soda gembira segar warna pink", ImageURL:"https://lh3.googleusercontent.com/d/dummy_s2", Status:"Aktif" },
+    { ID:"S03", Nama:"Manggo Yakult", Kategori:"Segeran", Harga:17000, Deskripsi:"Mix jus mangga dan yakult", ImageURL:"https://lh3.googleusercontent.com/d/dummy_s3", Status:"Aktif" },
+    { ID:"W01", Nama:"Wedang Pangkalan", Kategori:"Wedangan", Harga:12000, Deskripsi:"Minuman rempah hangat khas pangkalan", ImageURL:"https://lh3.googleusercontent.com/d/dummy_w1", Status:"Aktif" },
+    { ID:"C01", Nama:"Kentang Goreng", Kategori:"Camilan", Harga:10000, Deskripsi:"French fries gurih renyah", ImageURL:"https://lh3.googleusercontent.com/d/dummy_c1", Status:"Aktif" },
+];
+
+// ================================================================
+// INIT
+// ================================================================
+window.onload = function() {
+    var cached = null;
+    try { cached = JSON.parse(localStorage.getItem('p_menu')); } catch(e) {}
+    menuData = (cached && cached.length > 0) ? cached : FALLBACK;
+    renderStep1();
+    lucide.createIcons();
+};
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function goBack() {
+    stopCamera();
+    // Jika dari index.html, kembali. Jika langsung, buka index
+    if (document.referrer && document.referrer.indexOf(location.host) !== -1) {
+        history.back();
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+function goStep(n) {
+    // Validasi sebelum pindah
+    if (n === 2 && cart.length === 0) return toast("Keranjang masih kosong!");
+    if (n === 3) {
+        var nama = document.getElementById('inp-nama').value.trim();
+        var wa = document.getElementById('inp-wa').value.trim();
+        var alamat = document.getElementById('inp-alamat').value.trim();
+        if (!nama) return toast("Isi nama penerima");
+        if (!wa) return toast("Isi nomor WhatsApp");
+        if (!alamat) return toast("Isi alamat pengantaran");
+    }
+    if (n === 4 && !selfieBase64) return toast("Ambil foto verifikasi dulu");
+
+    currentStep = n;
+    document.querySelectorAll('.form-panel').forEach(function(p) { p.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + n);
+    if (panel) panel.classList.add('active');
+
+    // Update progress dots
+    for (var i = 1; i <= 4; i++) {
+        var dot = document.getElementById('dot-' + i);
+        var lbl = document.getElementById('lbl-' + i);
+        if (i < n) { dot.className = 'step-dot done'; dot.innerHTML = '&#10003;'; lbl.className = 'step-label'; }
+        else if (i === n) { dot.className = 'step-dot active'; dot.innerText = i; lbl.className = 'step-label active'; }
+        else { dot.className = 'step-dot'; dot.innerText = i; lbl.className = 'step-label'; }
+    }
+    for (var j = 1; j <= 3; j++) {
+        var line = document.getElementById('line-' + j);
+        if (line) line.className = (j < n) ? 'step-line done' : 'step-line';
+    }
+
+    // Show/hide cart float
+    document.getElementById('cart-float').classList.toggle('hidden', n !== 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    lucide.createIcons();
+
+    if (n === 3) stopCamera();
+}
+
+// ================================================================
+// STEP 1: MENU & CART
+// ================================================================
+function setCat(c) {
+    currentCat = c;
+    document.querySelectorAll('.fchip').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('fc-' + c); if (btn) btn.classList.add('active');
+    renderStep1();
+}
+
+function renderStep1() {
+    var q = (document.getElementById('srch').value || '').toLowerCase();
+    var grid = document.getElementById('menu-grid');
+    var filtered = menuData.filter(function(m) {
+        if (m.Status && m.Status !== 'Aktif' && m.Status !== 'aktif') return false;
+        if (currentCat !== 'all' && m.Kategori !== currentCat) return false;
+        if (q && m.Nama.toLowerCase().indexOf(q) === -1 && m.Kategori.toLowerCase().indexOf(q) === -1) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="text-center py-16 text-slate-300 text-sm">Tidak ada menu ditemukan.</div>';
+        updateCartFloat();
+        return;
+    }
+
+    grid.innerHTML = filtered.map(function(item) {
+        var inCart = cart.find(function(c) { return c.ID === item.ID; });
+        var qty = inCart ? inCart.qty : 0;
+        var imgUrl = (!item.ImageURL || item.ImageURL === '*' || item.ImageURL === '') ? 'https://images.unsplash.com/photo-1541014741259-df529411b96a?w=400' : item.ImageURL;
+
+        return '<div class="mcard ' + (inCart ? 'in-cart' : '') + '" onclick="addToCart(\'' + item.ID + '\')">'
+            + '<div class="flex gap-4 p-4">'
+            + '<img src="' + imgUrl + '" class="w-20 h-20 rounded-2xl object-cover flex-shrink-0" loading="lazy">'
+            + '<div class="flex-1 min-w-0">'
+            + '<div class="flex items-start justify-between gap-2">'
+            + '<div class="min-w-0">'
+            + '<p class="text-[8px] font-bold text-[#52bc1a] uppercase tracking-wider">' + item.Kategori + '</p>'
+            + '<h4 class="text-sm font-bold text-slate-800 leading-tight line-clamp-2">' + item.Nama + '</h4>'
+            + '</div>'
+            + '<span class="mcard-badge text-[10px] font-black px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 flex-shrink-0">' + qty + '</span>'
+            + '</div>'
+            + '<p class="text-sm font-black text-slate-800">Rp ' + item.Harga.toLocaleString() + '</p>'
+            + '</div></div></div>';
+    }).join('');
+
+    updateCartFloat();
+    lucide.createIcons();
+}
+
+function addToCart(id) {
+    var item = menuData.find(function(m) { return m.ID === id; });
+    if (!item) return;
+    var existing = cart.find(function(c) { return c.ID === id; });
+    if (existing) { existing.qty++; }
+    else { cart.push({ ID: item.ID, Nama: item.Nama, Kategori: item.Kategori, Harga: item.Harga, qty: 1 }); }
+    renderStep1();
+}
+
+function removeItem(id) {
+    cart = cart.filter(function(c) { return c.ID !== id; });
+    renderStep1();
+}
+
+function updateCartFloat() {
+    var total = cart.reduce(function(a, b) { return a + (b.qty * b.Harga); }, 0);
+    var count = cart.reduce(function(a, b) { return a + b.qty; }, 0);
+    document.getElementById('float-total').innerText = 'Rp ' + total.toLocaleString();
+    document.getElementById('float-count').innerText = count;
+    document.getElementById('cart-float').classList.toggle('hidden', count === 0);
+}
+
+// ================================================================
+// STEP 2: ALAMAT & GPS
+// ================================================================
+function captureGPS() {
+    if (!navigator.geolocation) return toast("GPS tidak tersedia di browser ini");
+    toast("Mendeteksi lokasi...");
+    var icon = document.getElementById('gps-icon');
+    icon.className = 'w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 flex-shrink-0 animate-pulse';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            gpsLat = pos.coords.latitude;
+            gpsLng = pos.coords.longitude;
+            icon.className = 'w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0';
+            icon.innerHTML = '<div class="gps-pulse"></div>';
+            document.getElementById('gps-text').textContent = 'Lokasi Tertangkap';
+            document.getElementById('gps-coord').textContent = gpsLat.toFixed(6) + ', ' + gpsLng.toFixed(6);
+            calcDeliveryFee();
+            toast("GPS berhasil!");
+        },
+        function(err) {
+            icon.className = 'w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-400 flex-shrink-0';
+            document.getElementById('gps-text').textContent = 'Gagal mendeteksi';
+            document.getElementById('gps-coord').textContent = 'Izinkan akses lokasi di browser';
+            toast("GPS gagal: " + err.message);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+    );
+}
+
+function calcDeliveryFee() {
+    // Jika ada GPS, hitung jarak sederhana (asumsi restoran di titik tetap)
+    // Untuk sekarang: gratis jika ada GPS, Rp 5000 jika tidak
+    var fee = gpsLat ? 0 : 5000;
+    document.getElementById('delivery-fee').innerText = fee === 0 ? 'GRATIS' : 'Rp ' + fee.toLocaleString();
+    document.getElementById('fee-note').textContent = fee === 0 ? 'Lokasi terdeteksi — gratis pengiriman' : 'Aktifkan GPS untuk gratis ongkir';
+}
+
+// ================================================================
+// STEP 3: SELFIE CAMERA
+// ================================================================
+function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast("Kamera tidak tersedia. Gunakan input foto sebagai alternatif.");
+        // Fallback: file input
+        var inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = function(e) {
+            var f = e.target.files[0]; if (!f) return;
+            var r = new FileReader();
+            r.onload = function(ev) {
+                selfieBase64 = ev.target.result;
+                showCaptured();
+            };
+            r.readAsDataURL(f);
+        };
+        inp.click();
+        return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 480, height: 640 } })
+    .then(function(stream) {
+        cameraStream = stream;
+        var video = document.getElementById('selfie-video');
+        video.srcObject = stream;
+        video.play();
+        document.getElementById('selfie-frame').classList.remove('hidden');
+        document.getElementById('selfie-captured-wrap').classList.add('hidden');
+        document.getElementById('btn-camera').classList.add('hidden');
+        document.getElementById('btn-capture').classList.remove('hidden');
+        lucide.createIcons();
+    })
+    .catch(function(err) {
+        toast("Kamera tidak bisa diakses: " + err.message);
+        // Fallback to file input
+        var inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = function(e) {
+            var f = e.target.files[0]; if (!f) return;
+            var r = new FileReader();
+            r.onload = function(ev) { selfieBase64 = ev.target.result; showCaptured(); };
+            r.readAsDataURL(f);
+        };
+        inp.click();
+    });
+}
+
+function captureSelfie() {
+    var video = document.getElementById('selfie-video');
+    var canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 480;
+    canvas.height = video.videoHeight || 640;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    selfieBase64 = canvas.toDataURL('image/jpeg', 0.7);
+    showCaptured();
+}
+
+function showCaptured() {
+    stopCamera();
+    document.getElementById('selfie-captured').src = selfieBase64;
+    document.getElementById('selfie-frame').classList.add('hidden');
+    document.getElementById('selfie-captured-wrap').classList.remove('hidden');
+    document.getElementById('selfie-btns').classList.add('hidden');
+    lucide.createIcons();
+}
+
+function retakeSelfie() {
+    selfieBase64 = '';
+    document.getElementById('selfie-captured-wrap').classList.add('hidden');
+    document.getElementById('selfie-btns').classList.remove('hidden');
+    startCamera();
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(function(t) { t.stop(); });
+        cameraStream = null;
+    }
+}
+
+// ================================================================
+// SUBMIT ORDER
+// ================================================================
+function submitOrder() {
+    var nama = document.getElementById('inp-nama').value.trim();
+    var wa = document.getElementById('inp-wa').value.trim();
+    var alamat = document.getElementById('inp-alamat').value.trim();
+    var catatan = document.getElementById('inp-catatan').value.trim();
+    var total = cart.reduce(function(a, b) { return a + (b.qty * b.Harga); }, 0);
+    var fee = gpsLat ? 0 : 5000;
+    var grand = total + fee;
+    var items = cart.map(function(c) { return { ID: c.ID, Nama: c.Nama, Kategori: c.Kategori, Harga: c.Harga, qty: c.qty }; });
+
+    var btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Mengirim...';
+
+    var payload = {
+        items: items, total: total, pelanggan: nama,
+        tipe: 'ONLINE', meja: '-', pembayaran: 'Cash',
+        status: 'Menunggu Pembayaran',
+        noWA: wa, alamat: alamat, catatan: catatan,
+        lat: gpsLat, lng: gpsLng,
+        selfieBase64: selfieBase64
+    };
+
+    var url = localStorage.getItem('p_api_url') || DEFAULT_API;
+    fetch(url, { method: 'POST', body: JSON.stringify({ action: 'save_order', data: payload }) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+        if (j.status === 'success') {
+            // Success
+            document.getElementById('s-id').innerText = j.data.trxId || '-';
+            document.getElementById('s-total').innerText = 'Rp ' + total.toLocaleString();
+            document.getElementById('s-fee').innerText = fee === 0 ? 'GRATIS' : 'Rp ' + fee.toLocaleString();
+            document.getElementById('s-grand').innerText = 'Rp ' + grand.toLocaleString();
+            goStep(4);
+        } else {
+            toast("Gagal: " + (j.message || 'Coba lagi'));
+            btn.disabled = false;
+            btn.innerHTML = 'Kirim Pesanan <i data-lucide="send" size="16"></i>';
+            lucide.createIcons();
+        }
+    })
+    .catch(function() {
+        toast("Jaringan bermasalah. Pesanan tersimpan lokal.");
+        // Fallback simpan lokal
+        try {
+            var local = JSON.parse(localStorage.getItem('p_local_orders') || '[]');
+            local.push({ id: "ORD-" + Date.now(), items: items, total: total, fee: fee, pelanggan: nama, alamat: alamat, date: new Date().toISOString() });
+            localStorage.setItem('p_local_orders', JSON.stringify(local));
+            document.getElementById('s-id').innerText = local[local.length-1].id;
+            document.getElementById('s-total').innerText = 'Rp ' + total.toLocaleString();
+            document.getElementById('s-fee').innerText = fee === 0 ? 'GRATIS' : 'Rp ' + fee.toLocaleString();
+            document.getElementById('s-grand').innerText = 'Rp ' + grand.toLocaleString();
+            goStep(4);
+        } catch(e) {}
+        btn.disabled = false;
+        btn.innerHTML = 'Kirim Pesanan <i data-lucide="send" size="16"></i>';
+        lucide.createIcons();
+    });
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+function toast(msg) {
+    var t = document.getElementById('toast');
+    t.innerText = msg;
+    t.style.opacity = '1';
+    t.style.pointerEvents = 'auto';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.style.opacity = '0'; t.style.pointerEvents = 'none'; }, 3500);
+}
+</script>
+</body>
+</html>
