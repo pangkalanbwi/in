@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pelayan - RM Pangkalan</title>
     
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#ffffff">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,11 +17,11 @@
     <style>
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #0f172a; 
-            color: #e2e8f0;
+            background-color: #f1f5f9; /* Slate 100 - Light Background */
+            color: #1e293b; /* Slate 800 - Dark Text */
         }
 
-        /* --- TOAST STYLING --- */
+        /* --- TOAST STYLING (Light Mode) --- */
         #toast-container {
             position: fixed;
             top: 1rem;
@@ -34,14 +34,12 @@
         }
         .toast-item {
             pointer-events: auto;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: white;
+            border: 1px solid #e2e8f0;
             border-radius: 1rem;
             padding: 1rem;
-            min-width: 300px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-width: 320px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             transform: translateX(120%);
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
@@ -50,8 +48,9 @@
         }
         .toast-item.show { transform: translateX(0); }
         .toast-item.info { border-left: 4px solid #3b82f6; }
+        .toast-item.success { border-left: 4px solid #52bc1a; }
 
-        /* --- TABLE MAP STYLING --- */
+        /* --- TABLE MAP STYLING (Light Mode) --- */
         .table-card {
             aspect-ratio: 1/1;
             border-radius: 1.5rem;
@@ -63,50 +62,42 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border: 2px solid transparent;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        /* Table States */
+        /* Empty Table */
         .table-empty {
-            background: #1e293b;
-            color: #475569;
+            background: white;
+            border: 2px dashed #cbd5e1;
+            color: #94a3b8;
         }
-        
+        .table-empty:hover { border-color: #94a3b8; }
+
+        /* Active Tables */
         .table-cooking {
-            background: #1e293b;
-            border-color: #f59e0b; /* Kuning */
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+            background: #fffbeb; /* Yellow 50 */
+            border: 2px solid #f59e0b; /* Yellow 500 */
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
         }
         
         .table-ready {
-            background: #1e293b;
-            border-color: #52bc1a; /* Hijau */
-            box-shadow: 0 0 20px rgba(82, 188, 26, 0.2);
-            animation: strong-pulse 1.5s infinite;
+            background: #f0fdf4; /* Emerald 50 */
+            border: 2px solid #52bc1a; /* Emerald 500 */
+            box-shadow: 0 0 20px rgba(82, 188, 26, 0.3);
+            animation: strong-pulse 2s infinite;
+            z-index: 10;
         }
         
         .table-eating {
-            background: #1e293b;
-            border-color: #3b82f6; /* Biru */
-            box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1);
+            background: #eff6ff; /* Blue 50 */
+            border: 2px solid #3b82f6; /* Blue 500 */
+            box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1);
         }
 
         @keyframes strong-pulse {
-            0% { border-width: 2px; }
-            50% { border-width: 6px; box-shadow: 0 0 25px rgba(82, 188, 26, 0.4); }
-            100% { border-width: 2px; }
-        }
-
-        /* Status Badges */
-        .badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 4px 8px;
-            border-radius: 99px;
-            text-transform: uppercase;
+            0% { border-width: 2px; transform: scale(1); }
+            50% { border-width: 4px; transform: scale(1.02); box-shadow: 0 0 30px rgba(82, 188, 26, 0.5); }
+            100% { border-width: 2px; transform: scale(1); }
         }
 
         /* Modal Slide Up */
@@ -115,42 +106,50 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: #1e293b;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            background: white;
+            border-top: 1px solid #e2e8f0;
             border-radius: 2rem 2rem 0 0;
             transform: translateY(110%);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 1000;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 -20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 -20px 50px rgba(0,0,0,0.1);
         }
         .slide-up-modal.open { transform: translateY(0); }
+        
+        /* Custom Scrollbar for Light Mode */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="p-4 lg:p-6 min-h-screen">
+
+    <!-- Audio Notifikasi -->
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
     <!-- Navbar -->
-    <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50 sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md">
+    <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 sticky top-0 z-40 bg-white/90 backdrop-blur-md shadow-sm">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                 <i data-lucide="users" size="20"></i>
             </div>
             <div>
-                <h1 class="text-xl lg:text-2xl font-black text-white tracking-tight leading-none">FLOOR MANAGER</h1>
+                <h1 class="text-xl lg:text-2xl font-black text-slate-800 tracking-tight leading-none">FLOOR MANAGER</h1>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5" id="sync-status">Monitoring Area...</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <div class="hidden lg:flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700">
-                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                <span class="text-xs font-bold text-slate-300">LIVE</span>
+            <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-emerald-700">LIVE</span>
             </div>
-            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 flex items-center justify-center transition active:scale-95">
                 <i data-lucide="log-out" size="18"></i>
             </button>
         </div>
@@ -158,27 +157,27 @@
 
     <!-- Stats & Filter -->
     <div class="flex flex-col lg:flex-row gap-4 mb-8 justify-between items-center">
-        <div class="flex gap-2 w-full lg:w-auto">
-            <button onclick="setFilter('all')" id="filter-all" class="flex-1 lg:flex-none px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs transition">SEMUA</button>
-            <button onclick="setFilter('active')" id="filter-active" class="flex-1 lg:flex-none px-4 py-2 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs hover:bg-slate-700 transition">AKTIF SAJA</button>
+        <div class="flex gap-2 w-full lg:w-auto bg-slate-200 p-1 rounded-xl">
+            <button onclick="setFilter('all')" id="filter-all" class="flex-1 lg:flex-none px-4 py-2 rounded-lg bg-white text-slate-800 font-bold text-xs shadow-sm transition">SEMUA</button>
+            <button onclick="setFilter('active')" id="filter-active" class="flex-1 lg:flex-none px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 font-bold text-xs hover:bg-white transition">AKTIF SAJA</button>
         </div>
 
-        <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 w-full lg:w-auto">
-            <div class="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 min-w-[100px] text-center">
+        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 w-full lg:w-auto">
+            <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 min-w-[100px] text-center shadow-sm">
                 <p class="text-[10px] text-slate-400 font-bold uppercase">Total Meja</p>
-                <p class="text-lg font-bold text-white">20</p>
+                <p class="text-lg font-black text-slate-800">20</p>
             </div>
-            <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-yellow-500 font-bold uppercase">Sedang Masak</p>
-                <p class="text-lg font-bold text-yellow-400" id="stat-cooking">0</p>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
+                <p class="text-[10px] text-yellow-600 font-bold uppercase">Sedang Masak</p>
+                <p class="text-lg font-black text-yellow-600" id="stat-cooking">0</p>
             </div>
-            <div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-emerald-500 font-bold uppercase">Siap Saji</p>
-                <p class="text-lg font-bold text-emerald-400" id="stat-ready">0</p>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
+                <p class="text-[10px] text-emerald-600 font-bold uppercase">Siap Saji</p>
+                <p class="text-lg font-black text-emerald-600" id="stat-ready">0</p>
             </div>
-            <div class="bg-blue-900/20 border border-blue-500/30 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-blue-500 font-bold uppercase">Makan Sini</p>
-                <p class="text-lg font-bold text-blue-400" id="stat-eating">0</p>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
+                <p class="text-[10px] text-blue-600 font-bold uppercase">Makan Sini</p>
+                <p class="text-lg font-black text-blue-600" id="stat-eating">0</p>
             </div>
         </div>
     </div>
@@ -190,27 +189,27 @@
 
     <!-- Modal Table Detail -->
     <div id="table-detail-modal" class="slide-up-modal">
-        <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
             <div>
-                <h2 class="text-2xl font-black text-white flex items-center gap-2">
-                    <i data-lucide="armchair" class="text-emerald-500"></i> 
-                    MEJA <span id="modal-table-num">01</span>
+                <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+                    <i data-lucide="armchair" class="text-emerald-600"></i> 
+                    MEJA <span id="modal-table-num" class="text-emerald-600">01</span>
                 </h2>
                 <p class="text-xs text-slate-400 font-bold uppercase mt-1" id="modal-status">Status...</p>
             </div>
-            <button onclick="closeModal()" class="p-2 bg-slate-700 rounded-full hover:bg-slate-600 text-white transition">
+            <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500 transition">
                 <i data-lucide="x" size="20"></i>
             </button>
         </div>
 
         <div class="p-6 space-y-6">
             <!-- Customer Info -->
-            <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Pelanggan</p>
-                <p class="text-lg font-bold text-white" id="modal-customer">-</p>
+                <p class="text-lg font-bold text-slate-800" id="modal-customer">-</p>
                 <div class="flex gap-4 mt-2 text-xs">
-                    <span class="bg-slate-700 px-2 py-1 rounded text-slate-300" id="modal-time">-</span>
-                    <span class="bg-slate-700 px-2 py-1 rounded text-slate-300" id="modal-type">-</span>
+                    <span class="bg-white px-2 py-1 rounded text-slate-600 border border-slate-200" id="modal-time">-</span>
+                    <span class="bg-white px-2 py-1 rounded text-slate-600 border border-slate-200" id="modal-type">-</span>
                 </div>
             </div>
 
@@ -223,29 +222,34 @@
             </div>
 
             <!-- Total -->
-            <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 flex justify-between items-center">
-                <span class="font-bold text-slate-400 text-sm">Total Tagihan</span>
-                <span class="text-2xl font-black text-emerald-400" id="modal-total">Rp 0</span>
+            <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex justify-between items-center">
+                <span class="font-bold text-emerald-700 text-sm">Total Tagihan</span>
+                <span class="text-2xl font-black text-emerald-700" id="modal-total">Rp 0</span>
             </div>
         </div>
     </div>
 
     <!-- Backdrop -->
-    <div id="backdrop" onclick="closeModal()" class="fixed inset-0 bg-black/50 z-50 hidden backdrop-blur-sm transition-opacity"></div>
+    <div id="backdrop" onclick="closeModal()" class="fixed inset-0 bg-slate-900/20 z-50 hidden backdrop-blur-sm transition-opacity"></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
         const TOTAL_TABLES = 20;
 
-        // --- TOAST MANAGER ---
+        // --- TOAST MANAGER (LIGHT THEME) ---
         class ToastManager {
             constructor() { this.container = document.getElementById('toast-container'); }
-            show(message, type = 'info', duration = 3000) {
+            show(message, type = 'info', duration = 4000) {
                 const toast = document.createElement('div');
                 toast.className = `toast-item ${type}`;
+                let icon = type === 'success' ? 'check-circle' : 'bell';
+                let colorClass = type === 'success' ? 'text-emerald-600' : 'text-blue-600';
+                
                 toast.innerHTML = `
-                    <i data-lucide="${type === 'info' ? 'bell' : 'info'}" class="text-blue-400" size="20"></i>
-                    <div class="flex-1"><p class="text-sm font-bold text-white leading-tight">${message}</p></div>
+                    <i data-lucide="${icon}" class="${colorClass}" size="20"></i>
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-slate-800 leading-tight">${message}</p>
+                    </div>
                 `;
                 this.container.appendChild(toast);
                 lucide.createIcons();
@@ -258,9 +262,19 @@
         // --- APP STATE ---
         let state = {
             transaksi: [],
-            tableStatus: {}, // Map {1: {status, data}}
-            filter: 'all' // 'all' or 'active'
+            tableStatus: {}, 
+            filter: 'all',
+            knownReadyOrders: new Set() // Untuk track notifikasi suara
         };
+
+        // --- AUDIO NOTIFICATION ---
+        function playNotificationSound() {
+            try {
+                const audio = document.getElementById('notification-sound');
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log("Audio autoplay blocked by browser"));
+            } catch(e) {}
+        }
 
         // --- SYNC LOGIC ---
         async function syncWaiter() {
@@ -277,8 +291,28 @@
                     renderMap();
                     updateStats();
                     
-                    // Detect new "Siap Saji" orders to notify waiter
-                    // (Simplified logic for demo)
+                    // Cek Notifikasi Baru (Suara)
+                    // Cari order baru yang statusnya 'Siap Saji' tapi belum di record sebelumnya
+                    const currentReadyOrders = new Set(
+                        trxData
+                            .filter(t => t.Status === 'Siap Saji' && t.Tipe === 'DINEIN')
+                            .map(t => t.ID_Transaksi)
+                    );
+
+                    let hasNew = false;
+                    currentReadyOrders.forEach(id => {
+                        if(!state.knownReadyOrders.has(id)) {
+                            hasNew = true;
+                        }
+                    });
+
+                    state.knownReadyOrders = currentReadyOrders;
+
+                    if(hasNew) {
+                        playNotificationSound();
+                        toast.show("Makanan siap untuk disajikan!", "info");
+                    }
+
                     document.getElementById('sync-status').innerText = "Live: " + new Date().toLocaleTimeString('id-ID');
                 }
             } catch (e) { console.error("Sync Error", e); }
@@ -286,44 +320,27 @@
 
         // --- LOGIC: PROCESS TABLE STATUS ---
         function processTableStatus(transactions) {
-            // Reset map
             state.tableStatus = {};
             
-            // Filter hanya DINEIN (Meja)
             const dineInOrders = transactions.filter(t => 
                 t.Tipe === 'DINEIN' && t.Status !== 'Batal' && t.Status !== 'Selesai'
             );
 
-            // Map orders to tables
-            // Note: A table can have multiple active orders in complex systems, 
-            // but usually for KDS simple logic, we take the most recent or combine them.
-            // Here we combine logic.
-            
             dineInOrders.forEach(trx => {
                 const tableNum = parseInt(trx.Meja);
                 if(!tableNum || tableNum < 1 || tableNum > TOTAL_TABLES) return;
 
-                // Logic Hierarchy:
-                // 1. Siap Saji (Highest Priority)
-                // 2. Sedang Dimasak / Menunggu
-                // 3. Lunas (Paid - Eating)
-                // 4. Others (Empty/Default)
-
                 let status = 'empty';
-                let priority = 0; // 0=Empty, 1=Eating, 2=Cooking, 3=Ready
+                let priority = 0;
 
                 if(trx.Status === 'Siap Saji') {
-                    status = 'ready';
-                    priority = 3;
+                    status = 'ready'; priority = 3;
                 } else if (trx.Status === 'Sedang Dimasak' || trx.Status === 'Menunggu Pembayaran') {
-                    status = 'cooking';
-                    priority = 2;
+                    status = 'cooking'; priority = 2;
                 } else if (trx.Status === 'Lunas') {
-                    status = 'eating';
-                    priority = 1;
+                    status = 'eating'; priority = 1;
                 }
 
-                // If multiple orders for same table, take highest priority
                 if(!state.tableStatus[tableNum] || state.tableStatus[tableNum].priority < priority) {
                     state.tableStatus[tableNum] = {
                         status: status,
@@ -348,32 +365,32 @@
                 let cardClass = 'table-empty';
                 let icon = 'armchair';
                 let text = 'KOSONG';
-                let textClass = 'text-slate-500';
+                let textClass = 'text-slate-400';
 
                 if (info) {
                     if (info.status === 'ready') {
                         cardClass = 'table-ready';
                         icon = 'utensils-crossed';
                         text = 'SIAP SAJI';
-                        textClass = 'text-emerald-400';
+                        textClass = 'text-emerald-600';
                     } else if (info.status === 'cooking') {
                         cardClass = 'table-cooking';
                         icon = 'flame';
                         text = 'SEDANG DIMASAK';
-                        textClass = 'text-yellow-400';
+                        textClass = 'text-yellow-600';
                     } else if (info.status === 'eating') {
                         cardClass = 'table-eating';
                         icon = 'users';
                         text = 'MAKAN SINI';
-                        textClass = 'text-blue-400';
+                        textClass = 'text-blue-600';
                     }
                 }
 
                 html += `
                 <div onclick="openTableDetail(${i})" class="table-card ${cardClass}">
                     <i data-lucide="${icon}" size="32" class="mb-2 ${textClass}"></i>
-                    <h3 class="text-2xl font-black text-white">0${i}</h3>
-                    <p class="text-[10px] font-bold uppercase ${textClass} mt-1">${text}</p>
+                    <h3 class="text-2xl font-black text-slate-800">0${i}</h3>
+                    <p class="text-[10px] font-bold uppercase ${textClass} mt-1 tracking-wide">${text}</p>
                     
                     ${info && info.status === 'ready' ? '<span class="absolute top-2 right-2 w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>' : ''}
                 </div>
@@ -391,11 +408,11 @@
             const backdrop = document.getElementById('backdrop');
             
             if(!info) {
-                // Table Empty - Reset Data
+                // Table Empty
                 document.getElementById('modal-table-num').innerText = '0' + tableNum;
                 document.getElementById('modal-status').innerText = 'MEJA KOSONG';
                 document.getElementById('modal-customer').innerText = '-';
-                document.getElementById('modal-items').innerHTML = '<p class="text-sm text-slate-500 italic">Belum ada pesanan.</p>';
+                document.getElementById('modal-items').innerHTML = '<p class="text-sm text-slate-400 italic">Belum ada pesanan.</p>';
                 document.getElementById('modal-total').innerText = 'Rp 0';
             } else {
                 const trx = info.data;
@@ -413,12 +430,12 @@
                 try { items = JSON.parse(trx.Item_JSON); } catch(e){}
 
                 const itemsHtml = items.map(item => `
-                    <div class="flex justify-between items-center bg-slate-700/30 p-3 rounded-lg border border-slate-600">
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
                         <div>
-                            <p class="font-bold text-white text-sm">${item.Nama}</p>
-                            ${item.Catatan ? `<p class="text-[10px] text-yellow-400 italic">* ${item.Catatan}</p>` : ''}
+                            <p class="font-bold text-slate-800 text-sm">${item.Nama}</p>
+                            ${item.Catatan ? `<p class="text-[10px] text-yellow-600 italic mt-0.5">* ${item.Catatan}</p>` : ''}
                         </div>
-                        <span class="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded">x${item.qty}</span>
+                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">x${item.qty}</span>
                     </div>
                 `).join('');
 
@@ -437,8 +454,9 @@
 
         function setFilter(type) {
             state.filter = type;
-            document.getElementById('filter-all').className = `flex-1 lg:flex-none px-4 py-2 rounded-xl font-bold text-xs transition ${type === 'all' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`;
-            document.getElementById('filter-active').className = `flex-1 lg:flex-none px-4 py-2 rounded-xl font-bold text-xs transition ${type === 'active' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`;
+            // Update Button Styles (Light Theme)
+            document.getElementById('filter-all').className = `flex-1 lg:flex-none px-4 py-2 rounded-lg font-bold text-xs transition ${type === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}`;
+            document.getElementById('filter-active').className = `flex-1 lg:flex-none px-4 py-2 rounded-lg font-bold text-xs transition ${type === 'active' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}`;
             renderMap();
         }
 
@@ -464,7 +482,7 @@
         let syncInterval;
         window.addEventListener('load', () => {
             syncWaiter();
-            syncInterval = setInterval(syncWaiter, 10000);
+            syncInterval = setInterval(syncWaiter, 10000); // 10 detik
         });
 
     </script>
