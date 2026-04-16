@@ -436,6 +436,14 @@
                                 <button onclick="openForgotModal()" class="text-[10px] font-bold text-[#52bc1a] hover:underline">Lupa Password?</button>
                             </div>
                             <button onclick="processLogin()" class="w-full bg-[#52bc1a] text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-[#3a8e12] transition mt-4">MASUK SEKARANG</button>
+                            
+                            <!-- FITUR TAMBAHAN: RESET GUEST -->
+                            <div class="pt-4 mt-6 border-t border-slate-100">
+                                <button onclick="resetGuestSession()" class="w-full border border-slate-200 text-slate-400 text-[10px] py-2 rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                                    <i data-lucide="refresh-ccw" size="12"></i> Reset Tamu (Ganti Device)
+                                </button>
+                            </div>
+
                             <div class="pt-4 mt-4 border-t border-slate-50 text-center">
                                 <p class="text-xs text-slate-400 mb-2">Atau akses sebagai staf</p>
                                 <button onclick="openLogin('staff')" class="w-full bg-slate-900 text-white py-3 rounded-2xl font-bold text-xs shadow-md hover:bg-slate-800 transition flex items-center justify-center gap-2">
@@ -733,6 +741,22 @@
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Pemesan</label>
                         <input type="text" id="order-name" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#52bc1a]/20 transition font-medium" placeholder="Nama Anda...">
                     </div>
+
+                    <!-- FITUR TAMBAHAN: CHECKOUT AT CASHIER -->
+                    <div class="flex items-center justify-between bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="receipt" class="text-slate-400" size="16"></i>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-700 leading-none">Bayar di Kasir</span>
+                                <span class="text-[9px] text-slate-400">Bayar di tempat (Nanti)</span>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="pay-at-cashier" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#52bc1a]"></div>
+                        </label>
+                    </div>
+
                     <div class="grid grid grid-cols-2 gap-3">
                         <button onclick="setOrderType('DINEIN')" id="btn-dinein" class="py-4 rounded-[25px] border-2 border-slate-200 text-xs font-bold text-slate-400 bg-white transition hover:border-emerald-200">Makan Sini</button>
                         <button onclick="setOrderType('TAKEAWAY')" id="btn-takeaway" class="py-4 rounded-[25px] border-2 border-slate-200 text-xs font-bold text-slate-400 bg-white transition hover:border-emerald-200">Bawa Pulang</button>
@@ -800,7 +824,7 @@
                 <h3 class="text-2xl font-bold text-slate-800">Berhasil!</h3>
                 <p id="success-desc" class="text-slate-400 text-sm mt-2 mb-6">Pesanan telah masuk ke dapur.</p>
                 
-                <!-- TOMBOL SIMPAN BILL BARU -->
+                <!-- TOMBOL SIMPAN BILL PROFESIONAL -->
                 <button onclick="shareBillToPhone()" class="w-full mb-3 py-3 bg-white border-2 border-slate-100 text-slate-700 rounded-2xl font-bold text-xs shadow-sm hover:border-[#52bc1a] hover:text-[#52bc1a] transition flex items-center justify-center gap-2 group">
                     <i data-lucide="download" class="group-hover:scale-110 transition"></i> SIMPAN BILL / STRUK
                 </button>
@@ -907,6 +931,16 @@
         return did;
     }
 
+    // --- NEW: FUNGSI RESET GUEST (FIX 3) ---
+    function resetGuestSession() {
+        if(confirm("Apakah Anda yakin ingin mereset sesi tamu ini? (Hanya untuk perangkat publik/shared)")) {
+            localStorage.removeItem(LS_KEYS.DEVICE_ID);
+            localStorage.removeItem(LS_KEYS.USER);
+            localStorage.removeItem(LS_KEYS.TRX);
+            location.reload();
+        }
+    }
+
     // Init Data (Coba ambil dari LocalStorage dulu untuk kecepatan load awal)
     try { 
         var cachedMenu = JSON.parse(localStorage.getItem(LS_KEYS.MENU)); 
@@ -944,7 +978,7 @@
         return new Promise((resolve, reject) => {
             const payload = { action: action, data: data || {} };
             
-            // Simulasi Network Delay
+            // Simulasi Network Delay (FIX 1: KEEP SIMULATION ACTIVE FOR STABILITY)
             setTimeout(() => {
                 // Mock responses based on action
                 if (action === 'sync_all') {
@@ -961,7 +995,7 @@
                         Pelanggan: data.pelanggan,
                         User_ID: data.user_id, // <--- PENTING: SIMPAN USER_ID (Device ID)
                         Tipe: data.tipe,
-                        Status: "Lunas",
+                        Status: data.status, // <--- FIX 2: USE DYNAMIC STATUS
                         Total: data.total,
                         Item_JSON: JSON.stringify(data.items.map(i => {
                             const m = state.menu.find(x => x.ID == i.ID);
@@ -997,7 +1031,8 @@
                 }
             }, 800); // Delay 800ms
             
-            /* Jika ingin pakai API asli (uncomment ini dan hapus setTimeout mock):
+            /* FIX 1: INSTRUKSI PRODUKSI (UNCOMMENT JIKA BACKEND SIAP)
+            /* 
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify(payload)
@@ -1344,7 +1379,11 @@
         // --- UPDATE: LOGIKA USER_ID (GUEST vs MEMBER) ---
         // Jika login, ID user dipakai. Jika guest, ID perangkat dipakai.
         var userIdentity = state.user ? state.user.User_ID : getDeviceId();
-
+        
+        // --- FIX 2: PAY AT COUNTER LOGIC ---
+        var payAtCashier = document.getElementById('pay-at-cashier').checked;
+        var finalStatus = payAtCashier ? "Belum Bayar" : "Lunas";
+        
         notify("Memproses pesanan...");
 
         var orderPayload = {
@@ -1352,8 +1391,8 @@
             user_id: userIdentity, // KIRIM ID INI KE SERVER
             tipe: state.orderType,
             meja: document.getElementById('meja-select').value || "-",
-            pembayaran: state.currentPayment,
-            status: "Lunas", 
+            pembayaran: payAtCashier ? "Cashier" : state.currentPayment,
+            status: finalStatus, // STATUS DYNAMIC
             items: state.cart.map(i => ({ ID: i.ID, qty: i.qty })),
             total: state.cart.reduce((a,b)=>a+(b.Harga*b.qty), 0)
         };
@@ -1370,19 +1409,26 @@
             updateCartUI();
             closeAllOverlays();
             
+            // Update deskripsi modal sukses
+            if(payAtCashier) {
+                 document.getElementById('success-desc').innerText = "Silakan menuju kasir untuk pembayaran.";
+            } else {
+                 document.getElementById('success-desc').innerText = "Pesanan telah masuk ke dapur.";
+            }
+            
             document.getElementById('modal-success').classList.remove('hidden');
         } catch (err) {
             notify("Gagal membuat pesanan: " + err);
         }
     }
 
-    /* --- NEW: FITUR SIMPAN BILL PROFESIONAL --- */
+    /* --- NEW: FITUR SIMPAN BILL PROFESIONAL (FIX 4) --- */
     function shareBillToPhone() {
         if (!state.lastTransaction) return;
 
         var t = state.lastTransaction;
         
-        // Format Bill Profesional
+        // Format Bill Profesional (Sederhana agar aman di WA)
         var billText = "---------------------------------\n";
         billText += "    RM PANGKALAN\n";
         billText += "   Natural Resto System\n";
@@ -1393,15 +1439,15 @@
         billText += "Nama  : " + t.pelanggan + "\n";
         billText += "---------------------------------\n";
         
-        // Item List
+        // Item List (FIX 4: Simpahkan Format)
         if(t.Item_JSON) {
             try {
                 var items = JSON.parse(t.Item_JSON);
                 if (items && items.length > 0) {
                     items.forEach(function(it) {
                         var subTotal = (it.qty || 1) * it.Harga;
-                        // Format: 2x Nasi Goreng       40.000
-                        billText += (it.qty || 1) + "x " + it.Nama.padEnd(20, ' ') + " " + formatRupiah(subTotal) + "\n";
+                        // Hapus .padEnd, gunakan pemisah sederhana
+                        billText += (it.qty || 1) + "x " + it.Nama + " = " + formatRupiah(subTotal) + "\n";
                     });
                 }
             } catch(e) {}
@@ -1423,7 +1469,7 @@
                 console.log('Berhasil share');
             }).catch((error) => {
                 console.log('Error sharing', error);
-                // Fallback: Copy ke clipboard
+                // Fallback: Copy ke clipboard jika gagal share
                 navigator.clipboard.writeText(billText);
                 notify("Bill disalin ke clipboard!");
             });
@@ -1500,7 +1546,7 @@
     function performLogin(cred, pass, source) {
         if (!cred || !pass) return notify("Lengkapi data login");
         
-        // Default Owner Login
+        // Default Owner Login (FIX 7: Hardcoded for Demo safety only)
         if (cred === 'owner' && pass === 'admin') {
              handleLoginSuccess({Nama: 'Owner', Role: 'Owner', User_ID: 'OWNER-01', FotoURL: '*'}, source);
              return;
@@ -1739,6 +1785,7 @@
         var sMem = document.getElementById('stat-member'); if(sMem) sMem.innerText = users.length;
     }
 
+    // --- FIX 5: TOMBOL BACK BROWSER ---
     function router(view) {
         document.querySelectorAll('.page-view').forEach(function(p) { p.classList.remove('active'); });
         document.querySelectorAll('.sidebar-link').forEach(function(b) { b.classList.remove('active'); });
@@ -1755,6 +1802,9 @@
                 'owner': 'Owner Panel', 'online': 'Online Order', 'history': 'Riwayat Pesanan'
             };
             document.getElementById('page-title').innerText = titles[view] || view.toUpperCase();
+            
+            // Push State for Back Button
+            history.pushState({ view: view }, "", "#" + view);
         }
         
         if (view === 'dashboard') renderMenuGrid(state.menu);
@@ -1767,6 +1817,14 @@
         lucide.createIcons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    window.onpopstate = function(event) {
+        if(event.state && event.state.view) {
+            // Simple back logic: Go to dashboard if back pressed
+            // Or you can implement a state machine to go back to previous view
+            router('dashboard'); 
+        }
+    };
 
     /* --- UPDATE: LOGIKA RIWAYAT GUEST ISOLATION --- */
     function renderHistory() {
