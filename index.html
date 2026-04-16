@@ -636,7 +636,7 @@
             <div id="view-history" class="page-view">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2"><i data-lucide="clock-counter-clockwise" class="text-[#52bc1a]"></i> Riwayat Pesanan</h2>
-                    <span class="text-xs font-bold bg-white px-3 py-1.5 rounded-full text-slate-400 border border-slate-100 shadow-sm">Semua Waktu</span>
+                    <span class="text-xs font-bold bg-white px-3 py-1.5 rounded-full text-slate-400 border border-slate-100 shadow-sm">Personal Device</span>
                 </div>
                 <div id="history-list" class="space-y-4 pb-10"></div>
             </div>
@@ -791,12 +791,21 @@
         </div>
 
         <!-- ========== MODALS ========== -->
+        
+        <!-- MODAL SUCCESS (WITH SAVE BILL BUTTON) -->
         <div id="modal-success" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[5000] hidden flex items-center justify-center p-6 text-center">
-            <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl border border-emerald-100">
+            <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl border border-emerald-100 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
                 <div class="w-20 h-20 bg-emerald-50 text-[#52bc1a] rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce"><i data-lucide="check-circle" size="40"></i></div>
                 <h3 class="text-2xl font-bold text-slate-800">Berhasil!</h3>
-                <p class="text-slate-400 text-sm mt-2 mb-8">Pesanan telah masuk ke dapur.</p>
-                <button onclick="closeModal('modal-success')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition">Lanjut Belanja</button>
+                <p id="success-desc" class="text-slate-400 text-sm mt-2 mb-6">Pesanan telah masuk ke dapur.</p>
+                
+                <!-- TOMBOL SIMPAN BILL BARU -->
+                <button onclick="shareBillToPhone()" class="w-full mb-3 py-3 bg-white border-2 border-slate-100 text-slate-700 rounded-2xl font-bold text-xs shadow-sm hover:border-[#52bc1a] hover:text-[#52bc1a] transition flex items-center justify-center gap-2 group">
+                    <i data-lucide="download" class="group-hover:scale-110 transition"></i> SIMPAN BILL / STRUK
+                </button>
+
+                <button onclick="closeModal('modal-success')" class="w-full bg-slate-900 text-white py-3 rounded-2xl font-bold hover:bg-slate-800 transition text-xs">TUTUP</button>
             </div>
         </div>
 
@@ -858,7 +867,8 @@
         USER: 'pangkalan_user',
         USERS: 'pangkalan_users',
         TRX: 'pangkalan_transaksi',
-        CART: 'pangkalan_cart'
+        CART: 'pangkalan_cart',
+        DEVICE_ID: 'pangkalan_device_id' // Key untuk Device Fingerprinting
     };
 
     // URL DEPLOY GOOGLE APPS SCRIPT (Disimulasikan)
@@ -878,8 +888,24 @@
         tempPhoto: null, 
         sidebarExpanded: false, 
         currentRoleLogin: 'member',
-        isSearching: false
+        isSearching: false,
+        lastTransaction: null // Untuk fitur Simpan Bill
     };
+
+    // --- NEW: FUNGSI DEVICE FINGERPRINTING ---
+    // Fungsi untuk menghasilkan ID Unik untuk Tamu (Guest)
+    function getDeviceId() {
+        var did = localStorage.getItem(LS_KEYS.DEVICE_ID);
+        
+        // Jika belum ada ID, buat baru
+        if (!did) {
+            // Generate ID random contoh: GUEST-x7s9d2
+            did = 'GUEST-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString().substr(-4);
+            localStorage.setItem(LS_KEYS.DEVICE_ID, did);
+        }
+        
+        return did;
+    }
 
     // Init Data (Coba ambil dari LocalStorage dulu untuk kecepatan load awal)
     try { 
@@ -918,10 +944,6 @@
         return new Promise((resolve, reject) => {
             const payload = { action: action, data: data || {} };
             
-            // SIMULASI: Karena ini standalone demo, kita panggil fetch tapi fallback ke sukses palsu
-            // jika fetch gagal (CORS) atau agar user bisa langsung mencoba fitur tanpa setup backend.
-            // Di production asli, baris fetch ini yang bekerja.
-            
             // Simulasi Network Delay
             setTimeout(() => {
                 // Mock responses based on action
@@ -937,6 +959,7 @@
                         ID_Transaksi: "TRX-" + Date.now(),
                         Tanggal: new Date().toISOString(),
                         Pelanggan: data.pelanggan,
+                        User_ID: data.user_id, // <--- PENTING: SIMPAN USER_ID (Device ID)
                         Tipe: data.tipe,
                         Status: "Lunas",
                         Total: data.total,
@@ -1318,10 +1341,15 @@
         
         if(!pelangganName) return notify("Mohon isi nama pemesan");
 
+        // --- UPDATE: LOGIKA USER_ID (GUEST vs MEMBER) ---
+        // Jika login, ID user dipakai. Jika guest, ID perangkat dipakai.
+        var userIdentity = state.user ? state.user.User_ID : getDeviceId();
+
         notify("Memproses pesanan...");
 
         var orderPayload = {
             pelanggan: pelangganName,
+            user_id: userIdentity, // KIRIM ID INI KE SERVER
             tipe: state.orderType,
             meja: document.getElementById('meja-select').value || "-",
             pembayaran: state.currentPayment,
@@ -1333,6 +1361,9 @@
         try {
             var res = await callCloud('save_order', orderPayload);
             
+            // --- UPDATE: SIMPAN TRANSAKSI TERAKHIR UNTUK BILL ---
+            state.lastTransaction = res;
+            
             await syncData();
             
             state.cart = [];
@@ -1342,6 +1373,64 @@
             document.getElementById('modal-success').classList.remove('hidden');
         } catch (err) {
             notify("Gagal membuat pesanan: " + err);
+        }
+    }
+
+    /* --- NEW: FITUR SIMPAN BILL PROFESIONAL --- */
+    function shareBillToPhone() {
+        if (!state.lastTransaction) return;
+
+        var t = state.lastTransaction;
+        
+        // Format Bill Profesional
+        var billText = "---------------------------------\n";
+        billText += "    RM PANGKALAN\n";
+        billText += "   Natural Resto System\n";
+        billText += "---------------------------------\n";
+        billText += "Tgl   : " + new Date(t.Tanggal).toLocaleDateString('id-ID') + "\n";
+        billText += "ID    : " + t.ID_Transaksi + "\n";
+        billText += "Meja  : " + t.meja + "\n";
+        billText += "Nama  : " + t.pelanggan + "\n";
+        billText += "---------------------------------\n";
+        
+        // Item List
+        if(t.Item_JSON) {
+            try {
+                var items = JSON.parse(t.Item_JSON);
+                if (items && items.length > 0) {
+                    items.forEach(function(it) {
+                        var subTotal = (it.qty || 1) * it.Harga;
+                        // Format: 2x Nasi Goreng       40.000
+                        billText += (it.qty || 1) + "x " + it.Nama.padEnd(20, ' ') + " " + formatRupiah(subTotal) + "\n";
+                    });
+                }
+            } catch(e) {}
+        }
+
+        billText += "---------------------------------\n";
+        billText += "TOTAL TAGIHAN: " + formatRupiah(t.total) + "\n";
+        billText += "---------------------------------\n";
+        billText += "Status: " + t.status.toUpperCase() + "\n";
+        billText += "Terima Kasih atas Kunjungan Anda!\n";
+        billText += "---------------------------------";
+
+        // Gunakan Web Share API (WA, Email, Notes)
+        if (navigator.share) {
+            navigator.share({
+                title: 'Tagihan RM Pangkalan',
+                text: billText,
+            }).then(() => {
+                console.log('Berhasil share');
+            }).catch((error) => {
+                console.log('Error sharing', error);
+                // Fallback: Copy ke clipboard
+                navigator.clipboard.writeText(billText);
+                notify("Bill disalin ke clipboard!");
+            });
+        } else {
+            // Fallback browser lama
+            navigator.clipboard.writeText(billText);
+            notify("Bill disalin ke clipboard!");
         }
     }
 
@@ -1679,17 +1768,30 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    /* --- UPDATE: LOGIKA RIWAYAT GUEST ISOLATION --- */
     function renderHistory() {
         var l = document.getElementById('history-list');
         if (!l) return;
         
-        var idn = state.user ? String(state.user.Nama) : 'Umum';
-        var ords = state.transaksi.filter(function(t) {
-            return String(t.Pelanggan) === idn || t.Pelanggan === 'Tamu'; 
-        });
+        var myId = getDeviceId(); // Ambil ID unik HP ini
+        var ords = [];
+
+        // LOGIKA FILTER BARU
+        if (state.user) {
+            // Jika SUDAH LOGIN: Cari berdasarkan Nama User
+            ords = state.transaksi.filter(function(t) {
+                return String(t.Pelanggan) === String(state.user.Nama);
+            });
+        } else {
+            // Jika TAMU (GUEST): Cari berdasarkan User_ID (Fingerprint HP)
+            // Pastikan field User_ID ada di data transaksi
+            ords = state.transaksi.filter(function(t) {
+                return String(t.User_ID) === String(myId);
+            });
+        }
 
         if (ords.length === 0) {
-            l.innerHTML = '<div class="text-center py-20 opacity-30 italic text-sm">Belum ada riwayat belanja.</div>';
+            l.innerHTML = '<div class="text-center py-20 opacity-30 italic text-sm">Belum ada riwayat belanja di perangkat ini.</div>';
             return;
         }
 
