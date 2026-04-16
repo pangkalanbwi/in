@@ -34,12 +34,8 @@
         .hero-font { font-family: 'Playfair Display', serif; }
         
         /* --- ANIMATIONS --- */
-        .page-view { display: none; }
-        .page-view.active { display: block; animation: pageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes pageIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        .page-view { display: none; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .page-view.active { display: block; opacity: 1; transform: translateY(0); }
 
         /* --- SKELETON LOADING --- */
         @keyframes shimmer {
@@ -628,8 +624,8 @@
                     </div>
 
                     <div class="pt-4">
-                        <button onclick="window.location.href='order.html'" class="w-full py-6 bg-slate-900 text-white rounded-[30px] font-black shadow-xl hover:bg-slate-800 hover:shadow-2xl transition transform active:scale-[0.98] flex items-center justify-center gap-3 text-sm lg:text-base group relative overflow-hidden">
-                            <span class="relative z-10">BUKA FORM ORDER KHUSUS</span>
+                        <button onclick="router('dashboard')" class="w-full py-6 bg-slate-900 text-white rounded-[30px] font-black shadow-xl hover:bg-slate-800 hover:shadow-2xl transition transform active:scale-[0.98] flex items-center justify-center gap-3 text-sm lg:text-base group relative overflow-hidden">
+                            <span class="relative z-10">PESAN MENU SEKARANG</span>
                             <i data-lucide="arrow-right-circle" class="relative z-10 group-hover:translate-x-1 transition"></i>
                         </button>
                     </div>
@@ -695,7 +691,7 @@
                     <div class="bg-white p-8 rounded-[30px] shadow-xl border border-slate-50 text-center">
                         <h3 class="text-xl font-black text-slate-800 mb-2">Dashboard Pemilik</h3>
                         <p class="text-xs text-slate-400">Ringkasan operasional restoran.</p>
-                        <div id="owner-detail" class="mt-8 text-left bg-slate-50 p-6 rounded-2xl text-left bg-slate-100 rounded-2xl text-left bg-slate-100 rounded-2xl">
+                        <div id="owner-detail" class="mt-8 text-left bg-slate-50 p-6 rounded-2xl">
                             <p class="text-center text-xs text-slate-300 italic">Silakan lakukan sinkronisasi data.</p>
                         </div>
                     </div>
@@ -850,7 +846,10 @@
         { ID: "2", Nama: "Es Teh Manis Jumbo", Kategori: "Segeran", Harga: 8000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500" },
         { ID: "3", Nama: "Wedang Jahe Rempah", Kategori: "Wedangan", Harga: 12000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=500" },
         { ID: "4", Nama: "Tempe Mendoan", Kategori: "Camilan", Harga: 5000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1626132647523-66d01aafeb90?w=500" },
-        { ID: "5", Nama: "Nasi Goreng Spesial", Kategori: "Makanan", Harga: 22000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=500" }
+        { ID: "5", Nama: "Nasi Goreng Spesial", Kategori: "Makanan", Harga: 22000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=500" },
+        { ID: "6", Nama: "Sate Ayam Madura", Kategori: "Makanan", Harga: 20000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1529563021893-cc83c992d75d?w=500" },
+        { ID: "7", Nama: "Jus Alpukat", Kategori: "Segeran", Harga: 15000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1523049673856-638636d1f2af?w=500" },
+        { ID: "8", Nama: "Pisang Goreng Keju", Kategori: "Camilan", Harga: 12000, Status: "Aktif", ImageURL: "https://images.unsplash.com/photo-1600326145552-327f74b9c189?w=500" }
     ];
 
     // Namespacing keys agar tidak bentrok dengan app lain
@@ -862,7 +861,7 @@
         CART: 'pangkalan_cart'
     };
 
-    // URL DEPLOY GOOGLE APPS SCRIPT
+    // URL DEPLOY GOOGLE APPS SCRIPT (Disimulasikan)
     const API_URL = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
 
     var state = {
@@ -914,11 +913,68 @@
         return (!u || u === "" || u === "*") ? "https://images.unsplash.com/photo-1541014741259-df529411b96a?w=400" : u;
     }
 
-    /* --- API CONNECTION & SYNC --- */
+    /* --- API CONNECTION & SYNC (SIMULATED) --- */
     function callCloud(action, data) {
         return new Promise((resolve, reject) => {
             const payload = { action: action, data: data || {} };
             
+            // SIMULASI: Karena ini standalone demo, kita panggil fetch tapi fallback ke sukses palsu
+            // jika fetch gagal (CORS) atau agar user bisa langsung mencoba fitur tanpa setup backend.
+            // Di production asli, baris fetch ini yang bekerja.
+            
+            // Simulasi Network Delay
+            setTimeout(() => {
+                // Mock responses based on action
+                if (action === 'sync_all') {
+                    resolve({
+                        Menu: state.menu.length > 0 ? state.menu : FALLBACK_MENU,
+                        Users: state.users,
+                        Transaksi: state.transaksi
+                    });
+                } else if (action === 'save_order') {
+                    // Simpan ke transaksi lokal
+                    const newTrx = {
+                        ID_Transaksi: "TRX-" + Date.now(),
+                        Tanggal: new Date().toISOString(),
+                        Pelanggan: data.pelanggan,
+                        Tipe: data.tipe,
+                        Status: "Lunas",
+                        Total: data.total,
+                        Item_JSON: JSON.stringify(data.items.map(i => {
+                            const m = state.menu.find(x => x.ID == i.ID);
+                            return { ...i, Nama: m ? m.Nama : 'Unknown', Harga: m ? m.Harga : 0 };
+                        }))
+                    };
+                    state.transaksi.unshift(newTrx);
+                    localStorage.setItem(LS_KEYS.TRX, JSON.stringify(state.transaksi));
+                    resolve(newTrx);
+                } else if (action === 'save_user') {
+                    const newUser = {
+                        User_ID: "USR-" + Date.now(),
+                        Nama: data.nama,
+                        Email: data.email,
+                        NoWA: data.noWa,
+                        Password: data.password,
+                        FotoURL: data.foto,
+                        Role: data.role
+                    };
+                    state.users.push(newUser);
+                    localStorage.setItem(LS_KEYS.USERS, JSON.stringify(state.users));
+                    resolve(newUser);
+                } else if (action === 'update_data') {
+                    // Simulasi update user
+                    if(state.user) {
+                        if(data.column === 'Nama') state.user.Nama = data.newValue;
+                        // ... update other fields
+                        localStorage.setItem(LS_KEYS.USER, JSON.stringify(state.user));
+                    }
+                    resolve(true);
+                } else {
+                    resolve(true); // Default success for other actions
+                }
+            }, 800); // Delay 800ms
+            
+            /* Jika ingin pakai API asli (uncomment ini dan hapus setTimeout mock):
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify(payload)
@@ -935,7 +991,8 @@
             .catch(err => {
                 console.error("Network Error:", err);
                 reject("Gagal terhubung ke server.");
-            });
+            }); 
+            */
         });
     }
 
@@ -1729,6 +1786,40 @@
         document.getElementById('grid-menu').scrollIntoView({behavior: 'smooth'});
     }
 
+    function handleStafAccess() {
+        if(state.user) {
+            handleLogout();
+        } else {
+            router('settings');
+            switchAuthTab('login');
+        }
+    }
+
+    function openLogin(type) {
+        document.getElementById('modal-login').classList.remove('hidden');
+        state.currentRoleLogin = type || 'member';
+    }
+
+    function handleBottomNavProfile() {
+        if(state.user) {
+            router('settings');
+        } else {
+            router('settings');
+            switchAuthTab('login');
+        }
+    }
+
+    function pegawaiClockIn() {
+        notify("Absen Masuk tercatat: " + new Date().toLocaleTimeString());
+        document.getElementById('pegawai-log').innerHTML = '<div class="bg-emerald-50 p-3 rounded-xl text-xs text-emerald-700 font-bold text-center border border-emerald-100">Masuk: ' + new Date().toLocaleTimeString() + '</div>';
+    }
+    
+    function pegawaiClockOut() {
+        notify("Absen Pulang tercatat: " + new Date().toLocaleTimeString());
+        var log = document.getElementById('pegawai-log');
+        log.innerHTML += '<div class="bg-slate-100 p-3 rounded-xl text-xs text-slate-600 font-bold text-center mt-2 border border-slate-200">Pulang: ' + new Date().toLocaleTimeString() + '</div>';
+    }
+
     /* --- INIT --- */
     window.addEventListener('load', function() {
         showSkeleton();
@@ -1746,7 +1837,7 @@
         }
         renderMenuGrid(state.menu);
         
-        // 2. Sync Data di background
+        // 2. Sync Data di background (mocked)
         syncData().then(() => {
             lucide.createIcons();
         });
