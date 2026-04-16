@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kasir - RM Pangkalan</title>
+    
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #0f172a; 
+            color: #e2e8f0;
+        }
+
+        /* --- TOAST STYLING --- */
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .toast-item {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem;
+            padding: 1rem;
+            min-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toast-item.show { transform: translateX(0); }
+        .toast-item.success { border-left: 4px solid #52bc1a; }
+        .toast-item.error { border-left: 4px solid #ef4444; }
+
+        /* --- CARD STYLING --- */
+        .card-base {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 1rem;
+        }
+        .card-unpaid { border-left: 4px solid #ef4444; }
+        .card-paid { border-left: 4px solid #52bc1a; opacity: 0.6; }
+
+        /* --- ADVANCED PRINT CSS (Thermal Printer Support) --- */
+        @media print {
+            body * { visibility: hidden; }
+            .print-visible, .print-visible * { visibility: visible; }
+            .print-visible { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 58mm; /* Standar 58mm thermal paper */
+                color: black; 
+                background: white; 
+                padding: 5mm;
+                font-family: 'Roboto Mono', monospace;
+                font-size: 10pt;
+                line-height: 1.2;
+            }
+            
+            /* Hide non-print elements */
+            .no-print { display: none !important; }
+            
+            /* Styling Text to be bold on printer */
+            .print-bold { font-weight: 900; font-size: 11pt; }
+            .print-center { text-align: center; }
+            .print-right { text-align: right; }
+            .print-line { border-top: 1px dashed black; margin: 2px 0; }
+            .print-double-line { border-top: 2px double black; margin: 4px 0; }
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-6 min-h-screen">
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- --- HIDDEN PRINT AREAS --- -->
+
+    <!-- 1. AREA CETAK STRUK PELANGGAN -->
+    <div id="print-receipt" class="print-visible hidden">
+        <div class="print-center">
+            <h1 class="print-bold" style="font-size: 14pt;">RM PANGKALAN</h1>
+            <p style="font-size: 8pt; margin-bottom: 2px;">Natural Resto Ecosystem</p>
+            <p style="font-size: 8pt;">Jl. Raya Resto No. 123</p>
+            <p style="font-size: 8pt;">Telp: 0812-3456-7890</p>
+        </div>
+        
+        <div class="print-line"></div>
+        
+        <div id="receipt-header" style="font-size: 9pt;"></div>
+        
+        <div class="print-line"></div>
+        
+        <table style="width: 100%; font-size: 9pt; margin-bottom: 5px;" id="receipt-items">
+            <!-- Items injected here -->
+        </table>
+        
+        <div class="print-double-line"></div>
+        
+        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px;">
+            <span>TOTAL</span>
+            <span id="receipt-total">Rp 0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt;">
+            <span>Metode</span>
+            <span id="receipt-method">Cash</span>
+        </div>
+
+        <div class="print-double-line"></div>
+        
+        <div class="print-center" style="font-size: 9pt;">
+            <p>Terima Kasih Atas Kunjungan Anda</p>
+            <p>*** WIFI: RM_PANGKALAN / Pass: rasaenak ***</p>
+        </div>
+    </div>
+
+    <!-- 2. AREA CETAK TIKET DAPUR (Kitchen Ticket) -->
+    <div id="print-kitchen" class="print-visible hidden">
+        <div class="print-center">
+            <!-- Header Besar untuk Dapur -->
+            <h1 class="print-bold" style="font-size: 22pt; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 10px;">
+                <span id="kitchen-table">MEJA --</span>
+            </h1>
+            
+            <div style="font-size: 14pt; margin-bottom: 5px;" id="kitchen-type">
+                DINING IN
+            </div>
+            
+            <div style="font-size: 9pt; margin-bottom: 10px; color: #333;">
+                Order #: <span id="kitchen-id">---</span><br>
+                <span id="kitchen-time">--:--</span>
+            </div>
+        </div>
+
+        <div class="print-line"></div>
+
+        <div id="kitchen-items" style="font-size: 11pt; margin-bottom: 10px;">
+            <!-- Items injected here -->
+        </div>
+
+        <div class="print-line"></div>
+
+        <div id="kitchen-notes" style="font-weight: bold; font-size: 12pt; text-align: center;">
+            <!-- Notes injected here -->
+        </div>
+    </div>
+
+    <!-- --- MAIN UI (NO PRINT) --- -->
+    
+    <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50 sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md no-print">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                <i data-lucide="printer" size="20"></i>
+            </div>
+            <div>
+                <h1 class="text-xl lg:text-2xl font-black text-white tracking-tight leading-none">KASIR PANEL</h1>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5" id="sync-status">Sistem Siap</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="hidden lg:flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700">
+                <span class="text-xs font-bold text-slate-300">Omset:</span>
+                <span class="text-sm font-black text-emerald-400" id="daily-omset">Rp 0</span>
+            </div>
+            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+                <i data-lucide="log-out" size="18"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search & Filter -->
+    <div class="flex gap-4 mb-6 no-print">
+        <div class="flex-1 relative">
+            <i data-lucide="search" class="absolute left-4 top-3.5 text-slate-500" size="18"></i>
+            <input type="text" id="search-input" oninput="renderKasir()" placeholder="Cari ID, Nama, Meja..." 
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print">
+        
+        <!-- Kolom Kiri: Belum Lunas -->
+        <div>
+            <h2 class="text-lg font-black text-white mb-4 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                BELUM LUNAS
+                <span id="count-unpaid" class="ml-auto bg-slate-800 text-xs font-bold px-2 py-1 rounded-md border border-slate-700 text-red-400">0</span>
+            </h2>
+            <div id="list-unpaid" class="space-y-4 pb-20">
+                <!-- Content Loaded via JS -->
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Riwayat / Lunas -->
+        <div>
+            <h2 class="text-lg font-black text-white mb-4 flex items-center gap-2">
+                <i data-lucide="check-circle" class="text-emerald-500" size="18"></i>
+                RIWAYAT
+                <span id="count-paid" class="ml-auto bg-slate-800 text-xs font-bold px-2 py-1 rounded-md border border-slate-700 text-emerald-400">0</span>
+            </h2>
+            <div id="list-paid" class="space-y-4 pb-20 opacity-50">
+                <!-- Content Loaded via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
+
+        // --- TOAST MANAGER ---
+        class ToastManager {
+            constructor() { this.container = document.getElementById('toast-container'); }
+            show(message, type = 'success', duration = 3000) {
+                const toast = document.createElement('div');
+                toast.className = `toast-item ${type}`;
+                let icon = type === 'success' ? 'check-circle' : 'alert-circle';
+                toast.innerHTML = `
+                    <i data-lucide="${icon}" class="${type === 'success' ? 'text-emerald-400' : 'text-red-400'}" size="20"></i>
+                    <div class="flex-1"><p class="text-sm font-bold text-white leading-tight">${message}</p></div>
+                `;
+                this.container.appendChild(toast);
+                lucide.createIcons();
+                requestAnimationFrame(() => toast.classList.add('show'));
+                setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, duration);
+            }
+        }
+        const toast = new ToastManager();
+
+        // --- APP STATE ---
+        let state = {
+            transaksi: [],
+            searchQuery: '',
+            isProcessing: new Set()
+        };
+
+        // --- API & SYNC ---
+        async function syncKasir() {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'sync_all' })
+                });
+                const json = await res.json();
+                if(json.status === 'success' && json.data && json.data.Transaksi) {
+                    state.transaksi = json.data.Transaksi;
+                    renderKasir();
+                    calcOmset();
+                    document.getElementById('sync-status').innerText = "Update: " + new Date().toLocaleTimeString('id-ID');
+                }
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        // --- PROSES PEMBAYARAN ---
+        async function markPaid(trxId, btnElement) {
+            if(state.isProcessing.has(trxId)) return;
+            state.isProcessing.add(trxId);
+
+            const card = document.getElementById(`card-${trxId}`);
+            if(card) {
+                card.style.transform = "translateX(-20px)";
+                card.style.opacity = "0";
+                btnElement.innerHTML = `<i data-lucide="loader-2" class="animate-spin"></i> MEMPROSES...`;
+            }
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'update_data',
+                        data: { targetSheet: 'Transaksi', id: trxId, column: 'Status', newValue: 'Lunas' }
+                    })
+                });
+                toast.show("Pembayaran Berhasil Disimpan", "success");
+                await syncKasir();
+            } catch (e) {
+                toast.show("Gagal menyimpan pembayaran", "error");
+                if(card) {
+                    card.style.transform = "none";
+                    card.style.opacity = "1";
+                    btnElement.innerHTML = "BAYAR";
+                    lucide.createIcons();
+                }
+            } finally {
+                state.isProcessing.delete(trxId);
+            }
+        }
+
+        // --- CETAK STRUK (CUSTOMER) ---
+        function printCustomerStruk(trxId) {
+            const trx = state.transaksi.find(t => t.ID_Transaksi === trxId);
+            if(!trx) return;
+
+            let items = [];
+            try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+
+            const date = new Date(trx.Tanggal).toLocaleString('id-ID');
+            
+            // Populate Receipt Header
+            document.getElementById('receipt-header').innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                    <span>Tgl: ${date.split(' ')[0]}</span>
+                    <span>Jam: ${date.split(' ')[1]}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                    <span>ID: ${trx.ID_Transaksi.split('-')[1].slice(-4)}</span>
+                    <span>Kasir: Admin</span>
+                </div>
+                <div style="font-weight:bold; margin-top:5px;">Pelanggan: ${trx.Pelanggan}</div>
+                <div style="font-size:8pt;">${trx.Tipe} - Meja ${trx.Meja}</div>
+            `;
+
+            // Populate Receipt Items
+            let itemHtml = '';
+            let total = 0;
+            items.forEach(item => {
+                const subTotal = item.Harga * item.qty;
+                total += subTotal;
+                itemHtml += `
+                    <tr>
+                        <td colspan="2" style="vertical-align: top; width: 65%;">${item.qty}x ${item.Nama}</td>
+                        <td style="text-align: right; width: 35%;">${formatRupiah(subTotal)}</td>
+                    </tr>
+                    ${item.Catatan ? `<tr><td colspan="3" style="font-size: 8pt; font-style: italic;">* ${item.Catatan}</td></tr>` : ''}
+                `;
+            });
+            document.getElementById('receipt-items').innerHTML = itemHtml;
+            
+            // Populate Total
+            document.getElementById('receipt-total').innerText = formatRupiah(trx.Total);
+            document.getElementById('receipt-method').innerText = trx.Pembayaran;
+
+            // Execute Print
+            document.getElementById('print-receipt').classList.remove('hidden');
+            document.getElementById('print-kitchen').classList.add('hidden'); // Hide kitchen
+            window.print();
+        }
+
+        // --- CETAK TIKET DAPUR (KITCHEN DOCKET) ---
+        function printKitchenTicket(trxId) {
+            const trx = state.transaksi.find(t => t.ID_Transaksi === trxId);
+            if(!trx) return;
+
+            let items = [];
+            try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+
+            const timeStr = new Date(trx.Tanggal).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+            // Populate Kitchen Header
+            document.getElementById('kitchen-table').innerText = `MEJA ${trx.Meja || '-'}`;
+            document.getElementById('kitchen-type').innerText = trx.Tipe.toUpperCase();
+            document.getElementById('kitchen-id').innerText = trx.ID_Transaksi.split('-')[1].slice(-4);
+            document.getElementById('kitchen-time').innerText = timeStr;
+
+            // Populate Kitchen Items
+            let itemHtml = '';
+            let notes = [];
+            
+            items.forEach(item => {
+                itemHtml += `
+                    <div style="border-bottom: 1px dashed #ccc; padding: 5px 0;">
+                        <div style="font-weight: 900;">${item.qty}x ${item.Nama}</div>
+                        ${item.Catatan ? `<div style="font-weight: bold; font-size: 10pt; color: #000;">* ${item.Catatan}</div>` : ''}
+                    </div>
+                `;
+            });
+            document.getElementById('kitchen-items').innerHTML = itemHtml;
+
+            // Execute Print
+            document.getElementById('print-kitchen').classList.remove('hidden');
+            document.getElementById('print-receipt').classList.add('hidden'); // Hide receipt
+            window.print();
+        }
+
+        // --- RENDER UI ---
+        function renderKasir() {
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+            
+            const allData = state.transaksi.filter(t => {
+                const matchSearch = t.ID_Transaksi.toLowerCase().includes(searchVal) || 
+                                    t.Pelanggan.toLowerCase().includes(searchVal) || 
+                                    t.Meja.includes(searchVal);
+                return matchSearch;
+            });
+
+            const unpaid = allData.filter(t => t.Status !== 'Lunas' && t.Status !== 'Batal');
+            const paid = allData.filter(t => t.Status === 'Lunas');
+
+            document.getElementById('count-unpaid').innerText = unpaid.length;
+            document.getElementById('count-paid').innerText = paid.length;
+
+            renderList('list-unpaid', unpaid, 'unpaid');
+            renderList('list-paid', paid, 'paid');
+        }
+
+        function renderList(containerId, data, type) {
+            const container = document.getElementById(containerId);
+            if(data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 opacity-30 border-2 border-dashed border-slate-700 rounded-2xl">
+                        <p class="text-sm font-bold">Tidak ada data</p>
+                    </div>`;
+                return;
+            }
+
+            if(type === 'unpaid') {
+                data.sort((a,b) => {
+                    const pA = (a.Status === 'Siap Saji') ? 0 : 1;
+                    const pB = (b.Status === 'Siap Saji') ? 0 : 1;
+                    return pA - pB || new Date(a.Tanggal) - new Date(b.Tanggal);
+                });
+            } else {
+                data.sort((a,b) => new Date(b.Tanggal) - new Date(a.Tanggal));
+            }
+
+            container.innerHTML = data.map(trx => {
+                let items = [];
+                try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+
+                const itemSummary = items.slice(0,2).map(i => `${i.qty}x ${i.Nama}`).join(', ');
+                const moreItems = items.length > 2 ? `+${items.length - 2} lagi` : '';
+                const statusColor = trx.Status === 'Siap Saji' ? 'text-emerald-400' : 'text-yellow-400';
+
+                return `
+                <div id="card-${trx.ID_Transaksi}" class="card-base card-${type} overflow-hidden transition hover:scale-[1.01]">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] font-bold uppercase bg-slate-700 px-2 py-0.5 rounded text-slate-300">
+                                        ${trx.Tipe}
+                                    </span>
+                                    <span class="text-[10px] font-bold uppercase bg-slate-700 px-2 py-0.5 rounded text-white">
+                                        ${trx.Meja || '-'}
+                                    </span>
+                                    ${type === 'unpaid' ? `<span class="text-[10px] font-bold ${statusColor} px-2 py-0.5 rounded animate-pulse">
+                                        ${trx.Status}
+                                    </span>` : ''}
+                                </div>
+                                <h3 class="text-lg font-bold text-white">${trx.Pelanggan}</h3>
+                                <p class="text-[10px] text-slate-500 font-mono">${trx.ID_Transaksi}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-emerald-400">${formatRupiah(trx.Total)}</p>
+                                <p class="text-[10px] text-slate-500">${new Date(trx.Tanggal).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/50 p-3 rounded-lg mb-4 text-xs text-slate-300 border border-slate-700">
+                            <p>${itemSummary} ${moreItems}</p>
+                        </div>
+
+                        ${type === 'unpaid' ? `
+                        <!-- DOUBLE BUTTONS: CUSTOMER & KITCHEN -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="printKitchenTicket('${trx.ID_Transaksi}')" class="py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1">
+                                <i data-lucide="chef-hat" size="14"></i> TIKET DAPUR
+                            </button>
+                            <button onclick="markPaid('${trx.ID_Transaksi}', this)" class="py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold text-xs rounded-lg shadow-lg shadow-emerald-900/20 transition active:scale-95 flex items-center justify-center gap-1">
+                                <i data-lucide="check" size="14"></i> LUNAS
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="printCustomerStruk('${trx.ID_Transaksi}')" class="w-full py-2 border border-slate-600 text-slate-400 hover:text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1">
+                                <i data-lucide="receipt" size="14"></i> CETAK STRUK
+                            </button>
+                        </div>
+                        ` : `
+                        <div class="flex justify-center">
+                            <button onclick="printCustomerStruk('${trx.ID_Transaksi}')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition flex items-center gap-2">
+                                <i data-lucide="printer" size="14"></i> CETAK ULANG
+                            </button>
+                        </div>
+                        `}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function formatRupiah(num) {
+            return "Rp " + num.toLocaleString('id-ID');
+        }
+
+        function calcOmset() {
+            const today = new Date().toDateString();
+            const todayTrx = state.transaksi.filter(t => {
+                return t.Status === 'Lunas' && new Date(t.Tanggal).toDateString() === today;
+            });
+            const total = todayTrx.reduce((a,b) => a + parseFloat(b.Total || 0), 0);
+            document.getElementById('daily-omset').innerText = formatRupiah(total);
+        }
+
+        // --- INIT ---
+        window.addEventListener('load', () => {
+            syncKasir();
+            setInterval(syncKasir, 15000);
+        });
+
+    </script>
+</body>
+</html>
