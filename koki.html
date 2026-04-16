@@ -3,234 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dapur - RM Pangkalan</title>
+    <title>Dapur Pro - RM Pangkalan</title>
     
-    <meta name="theme-color" content="#dc2626"> <!-- Warna Merah untuk Dapur -->
+    <meta name="theme-color" content="#0f172a">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #111827; color: white; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #0f172a; /* Slate 900 - Dark Theme Base */
+            color: #e2e8f0;
+        }
+
+        /* --- TOAST STYLING (Pro) --- */
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none; /* Biar klik tembus ke area lain */
+        }
+        .toast-item {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.85); /* Backdrop Blur Dark */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1rem;
+            min-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toast-item.show {
+            transform: translateX(0);
+        }
+        .toast-item.success { border-left: 4px solid #52bc1a; }
+        .toast-item.error { border-left: 4px solid #ef4444; }
+        .toast-item.info { border-left: 4px solid #3b82f6; }
+
+        /* --- KITCHEN CARD STYLING --- */
+        .kitchen-card {
+            background: #1e293b; /* Slate 800 */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
         
-        /* Animasi Ping untuk pesanan baru */
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-        }
-        .new-order-pulse { animation: pulse-red 2s infinite; border: 2px solid #ef4444; }
+        /* Status Indicators */
+        .status-pending { border-bottom: 4px solid #ef4444; } /* Merah */
+        .status-cooking { border-bottom: 4px solid #f59e0b; } /* Kuning */
+        .status-ready { border-bottom: 4px solid #52bc1a; } /* Hijau */
 
-        .card-cooking { border-left: 6px solid #f59e0b; } /* Kuning */
-        .card-ready { border-left: 6px solid #10b981; } /* Hijau */
-        .card-pending { border-left: 6px solid #ef4444; } /* Merah */
-
-        /* Timer styling */
-        .timer-badge {
-            font-variant-numeric: tabular-nums;
+        /* New Order Animation */
+        @keyframes subtle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
+        .is-new { animation: subtle-pulse 2s infinite; }
+
+        /* Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 lg:p-8 min-h-screen">
+<body class="p-4 lg:p-6 min-h-screen">
 
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700">
-        <div>
-            <h1 class="text-3xl font-black text-white flex items-center gap-3">
-                <i data-lucide="chef-hat" class="text-red-500"></i> KDS PANGKALAN
-            </h1>
-            <p class="text-gray-400 text-sm mt-1" id="last-sync">Sinkronisasi otomatis...</p>
-        </div>
-        <div class="flex items-center gap-4">
-            <div class="bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
-                <span class="text-gray-400 text-xs uppercase font-bold">Jumlah Antrian</span>
-                <p id="queue-count" class="text-2xl font-black text-red-500 text-center">0</p>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Navbar / Header -->
+    <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50 sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                <i data-lucide="chef-hat" size="20"></i>
             </div>
-            <button onclick="refreshData()" class="p-3 bg-gray-800 rounded-full hover:bg-gray-700 transition border border-gray-700">
-                <i data-lucide="refresh-cw" class="text-white"></i>
+            <div>
+                <h1 class="text-xl lg:text-2xl font-black text-white tracking-tight leading-none">KITCHEN DISPLAY</h1>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5" id="sync-status">Menghubungkan...</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="hidden lg:flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="live-dot"></span>
+                <span class="text-xs font-bold text-slate-300">LIVE</span>
+            </div>
+            <button onclick="refreshData()" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+                <i data-lucide="refresh-cw" size="18" class="transition-transform duration-500" id="refresh-icon"></i>
             </button>
-            <button onclick="logout()" class="p-3 bg-red-900/50 rounded-full hover:bg-red-600 transition text-red-200">
-                <i data-lucide="log-out"></i>
+            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 hover:text-red-400 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+                <i data-lucide="log-out" size="18"></i>
             </button>
         </div>
     </header>
 
-    <!-- Stats Ringkas -->
+    <!-- Dashboard Stats -->
     <div class="grid grid-cols-3 gap-4 mb-8">
-        <div class="bg-red-900/20 p-4 rounded-xl border border-red-900/50 text-center">
-            <p class="text-red-400 text-xs uppercase font-bold mb-1">Menunggu Masak</p>
-            <p id="stat-pending" class="text-3xl font-black text-white">0</p>
+        <div class="kitchen-card p-4 rounded-2xl relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Antrian</p>
+            <h2 class="text-3xl font-black text-red-400" id="stat-pending">0</h2>
         </div>
-        <div class="bg-yellow-900/20 p-4 rounded-xl border border-yellow-900/50 text-center">
-            <p class="text-yellow-400 text-xs uppercase font-bold mb-1">Sedang Dimasak</p>
-            <p id="stat-cooking" class="text-3xl font-black text-white">0</p>
+        <div class="kitchen-card p-4 rounded-2xl relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Dimasak</p>
+            <h2 class="text-3xl font-black text-yellow-400" id="stat-cooking">0</h2>
         </div>
-        <div class="bg-green-900/20 p-4 rounded-xl border border-green-900/50 text-center">
-            <p class="text-green-400 text-xs uppercase font-bold mb-1">Siap Saji</p>
-            <p id="stat-ready" class="text-3xl font-black text-white">0</p>
-        </div>
-    </div>
-
-    <!-- Grid Pesanan -->
-    <div id="kitchen-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <!-- Pesanan akan dirender di sini via JS -->
-        <div class="col-span-full text-center py-20 opacity-50 text-gray-500">
-            <i data-lucide="utensils-crossed" size="48" class="mb-4 mx-auto"></i>
-            <p class="text-lg font-bold">Tidak ada pesanan aktif saat ini.</p>
+        <div class="kitchen-card p-4 rounded-2xl relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Siap Saji</p>
+            <h2 class="text-3xl font-black text-emerald-400" id="stat-ready">0</h2>
         </div>
     </div>
 
-    <!-- Audio notifikasi (Opsional) -->
-    <audio id="bell-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
+    <!-- Kitchen Grid -->
+    <div id="kitchen-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+        <!-- Loading State -->
+        <div class="col-span-full flex flex-col items-center justify-center py-32 text-slate-600">
+            <i data-lucide="utensils" size="48" class="opacity-20 mb-4 animate-pulse"></i>
+            <p class="text-sm font-bold tracking-wider">MEMUAT ANTRIAN DAPUR...</p>
+        </div>
+    </div>
+
+    <!-- Audio -->
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3"></audio>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
-        
+
+        // --- TOAST MANAGER (PRO) ---
+        class ToastManager {
+            constructor() {
+                this.container = document.getElementById('toast-container');
+            }
+
+            show(message, type = 'info', duration = 3000) {
+                const toast = document.createElement('div');
+                toast.className = `toast-item ${type}`;
+                
+                let iconColor = type === 'success' ? 'text-emerald-400' : (type === 'error' ? 'text-red-400' : 'text-blue-400');
+                let iconName = type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'info');
+
+                toast.innerHTML = `
+                    <i data-lucide="${iconName}" class="${iconColor}" size="20"></i>
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-white leading-tight">${message}</p>
+                    </div>
+                `;
+
+                this.container.appendChild(toast);
+                lucide.createIcons();
+
+                // Animation In
+                requestAnimationFrame(() => {
+                    toast.classList.add('show');
+                });
+
+                // Auto Dismiss
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 400); // Remove from DOM after transition
+                }, duration);
+            }
+        }
+
+        const toast = new ToastManager();
+
+        // --- APP STATE ---
         let state = {
             transaksi: [],
-            lastCount: 0
+            lastIDs: new Set(),
+            isProcessing: new Set() // Mencegah double click spam
         };
 
-        /* --- API CONNECTION --- */
-        async function syncKitchen() {
+        // --- OPTIMISTIC UI & API ---
+        async function updateStatus(trxId, newStatus, btnElement) {
+            if(state.isProcessing.has(trxId)) return;
+            state.isProcessing.add(trxId);
+
+            // 1. UPDATE INSTANT (UI) - Optimistic UI
+            // Ubah tampilan kartu tanpa menunggu server, biar terlihat cepat
+            const card = document.getElementById(`card-${trxId}`);
+            if(card) {
+                card.classList.remove('status-pending', 'status-cooking', 'status-ready', 'is-new');
+                if(newStatus === 'Menunggu Pembayaran') card.classList.add('status-pending');
+                if(newStatus === 'Sedang Dimasak') card.classList.add('status-cooking');
+                if(newStatus === 'Siap Saji') card.classList.add('status-ready');
+                
+                // Ubah tombol visual loading
+                const originalBtnHtml = btnElement.innerHTML;
+                btnElement.disabled = true;
+                btnElement.innerHTML = `<i data-lucide="loader-2" class="animate-spin"></i>`;
+                lucide.createIcons();
+            }
+
+            // 2. KIRIM KE SERVER (Async)
             try {
-                // Kita ambil semua data, tapi fokus ke Transaksi
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'update_data',
+                        data: { targetSheet: 'Transaksi', id: trxId, column: 'Status', newValue: newStatus }
+                    })
+                });
+                const json = await res.json();
+
+                if(json.status === 'success') {
+                    toast.show("Status berhasil diupdate", "success");
+                    await refreshData(true); // Force refresh untuk sinkronisasi data bersih
+                } else {
+                    throw new Error(json.message);
+                }
+            } catch (e) {
+                toast.show("Gagal update: " + e.message, "error");
+                // REVERT jika gagal (Kembalikan ke tampilan semula)
+                if(card) {
+                    // Reload full data for consistency
+                    refreshData(true); 
+                }
+            } finally {
+                state.isProcessing.delete(trxId);
+            }
+        }
+
+        // --- SYNC LOGIC ---
+        async function refreshData(force = false) {
+            // Animation spinner
+            const refreshIcon = document.getElementById('refresh-icon');
+            if(refreshIcon) refreshIcon.classList.add('animate-spin');
+            
+            try {
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'sync_all' })
                 });
                 const json = await res.json();
-                
-                if(json.status === 'success' && json.data && json.data.Transaksi) {
-                    const oldIDs = new Set(state.transaksi.map(t => t.ID_Transaksi));
-                    state.transaksi = json.data.Transaksi;
-                    const newIDs = new Set(state.transaksi.map(t => t.ID_Transaksi));
 
-                    // Cek jika ada pesanan baru (bunyikan bel)
-                    // Jika jumlah pesanan 'Menunggu Pembayaran' lebih banyak dari sebelumnya
-                    const pendingOrders = state.transaksi.filter(t => t.Status === 'Menunggu Pembayaran');
-                    if (pendingOrders.length > state.lastCount) {
-                        playNotification();
+                if(json.status === 'success' && json.data && json.data.Transaksi) {
+                    const incomingData = json.data.Transaksi;
+                    const currentIDs = new Set(incomingData.map(t => t.ID_Transaksi));
+                    
+                    // DETEKSI PESANAN BARU (Notifikasi Suara)
+                    // Jika ada ID di data baru yang tidak ada di data lama
+                    let hasNew = false;
+                    incomingData.forEach(t => {
+                        if(!state.lastIDs.has(t.ID_Transaksi) && t.Status === 'Menunggu Pembayaran') {
+                            hasNew = true;
+                        }
+                    });
+
+                    if(hasNew && !force) {
+                        playSound();
+                        toast.show("Pesanan baru masuk!", "info");
                     }
-                    state.lastCount = pendingOrders.length;
+
+                    // Update State
+                    state.transaksi = incomingData;
+                    state.lastIDs = currentIDs;
 
                     renderKitchen();
                     updateStats();
                     
-                    document.getElementById('last-sync').innerText = "Terupdate: " + new Date().toLocaleTimeString('id-ID');
-                    document.getElementById('queue-count').innerText = pendingOrders.length;
+                    document.getElementById('sync-status').innerText = "Update: " + new Date().toLocaleTimeString('id-ID');
                 }
             } catch (e) {
                 console.error("Sync Error", e);
+                if(!force) toast.show("Gagal sinkronisasi", "error");
+            } finally {
+                if(refreshIcon) refreshIcon.classList.remove('animate-spin');
             }
         }
 
-        /* --- UPDATE STATUS --- */
-        async function updateStatus(trxId, newStatus) {
-            if(!confirm("Ubah status pesanan ini menjadi '" + newStatus + "'?")) return;
-
-            try {
-                // Panggil fungsi update_data di code.gs
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'update_data',
-                        data: {
-                            targetSheet: 'Transaksi',
-                            id: trxId,
-                            column: 'Status',
-                            newValue: newStatus
-                        }
-                    })
-                });
-                
-                // Refresh data
-                syncKitchen();
-            } catch (e) {
-                alert("Gagal update status: " + e);
-            }
-        }
-
-        /* --- RENDER UI --- */
+        // --- RENDER UI ---
         function renderKitchen() {
             const grid = document.getElementById('kitchen-grid');
             
-            // Filter hanya pesanan yang belum Lunas/Selesai
+            // Filter: Tampilkan yg aktif saja (Bukan 'Lunas', 'Selesai', 'Batal')
             const activeOrders = state.transaksi.filter(t => 
-                t.Status !== 'Lunas' && t.Status !== 'Batal' && t.Status !== 'Selesai'
+                ['Lunas', 'Selesai', 'Batal'].indexOf(t.Status) === -1
             );
 
             if (activeOrders.length === 0) {
                 grid.innerHTML = `
-                    <div class="col-span-full text-center py-20 opacity-30">
-                        <i data-lucide="check-circle" size="64" class="mb-4 mx-auto text-green-500"></i>
-                        <p class="text-xl font-bold text-gray-400">DAPUR SEPI / SEMUA PESANAN SELESAI</p>
+                    <div class="col-span-full flex flex-col items-center justify-center py-40 opacity-30">
+                        <i data-lucide="check-circle-2" size="64" class="mb-4 text-emerald-500"></i>
+                        <p class="text-xl font-bold tracking-widest">DAPUR KOSONG</p>
+                        <p class="text-xs text-slate-500 mt-2">Semua pesanan sudah terselesaikan.</p>
                     </div>`;
                 lucide.createIcons();
                 return;
             }
 
-            // Sort: Pending dulu (Merah), lalu Cooking (Kuning), lalu Ready (Hijau)
-            // Di dalam group, sort berdasarkan waktu (terlama di atas)
+            // Sorting Logic
+            // Prioritas: Pending (1) > Cooking (2) > Ready (3)
+            // Dalam grup: Terlama di atas
+            const priorityMap = { 'Menunggu Pembayaran': 1, 'Sedang Dimasak': 2, 'Siap Saji': 3 };
+            
             activeOrders.sort((a, b) => {
-                const priority = { 'Menunggu Pembayaran': 1, 'Sedang Dimasak': 2, 'Siap Saji': 3 };
-                return priority[a.Status] - priority[b.Status] || new Date(a.Tanggal) - new Date(b.Tanggal);
+                const pA = priorityMap[a.Status] || 99;
+                const pB = priorityMap[b.Status] || 99;
+                if (pA !== pB) return pA - pB;
+                return new Date(a.Tanggal) - new Date(b.Tanggal);
             });
 
+            // Generate HTML
             grid.innerHTML = activeOrders.map(trx => {
                 let items = [];
                 try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+                
+                const dateObj = new Date(trx.Tanggal);
+                const timeElapsed = Math.floor((new Date() - dateObj) / 60000);
+                const isRecent = timeElapsed < 2 && trx.Status === 'Menunggu Pembayaran';
 
-                const dateOrder = new Date(trx.Tanggal);
-                const elapsed = Math.floor((new Date() - dateOrder) / 60000); // menit
-
-                // Tentukan style border berdasarkan status
-                let borderClass = 'card-pending';
-                if(trx.Status === 'Sedang Dimasak') borderClass = 'card-cooking';
-                if(trx.Status === 'Siap Saji') borderClass = 'border-green-500';
-
-                // Jika pesanan baru (kurang dari 1 menit), beri animasi pulse
-                let isNew = elapsed < 1 && trx.Status === 'Menunggu Pembayaran';
+                const borderClass = trx.Status === 'Menunggu Pembayaran' ? 'status-pending' : 
+                                   (trx.Status === 'Sedang Dimasak' ? 'status-cooking' : 'status-ready');
 
                 return `
-                <div class="bg-gray-800 rounded-2xl overflow-hidden shadow-2xl ${borderClass} ${isNew ? 'new-order-pulse' : ''} flex flex-col">
-                    <!-- Header Card -->
-                    <div class="bg-gray-700/50 p-4 flex justify-between items-start border-b border-gray-700">
+                <div id="card-${trx.ID_Transaksi}" class="kitchen-card rounded-3xl overflow-hidden flex flex-col shadow-2xl ${borderClass} ${isRecent ? 'is-new' : ''}">
+                    <!-- Header -->
+                    <div class="bg-slate-900/50 p-4 border-b border-white/5 flex justify-between items-start">
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-xs font-bold uppercase bg-gray-700 px-2 py-1 rounded text-gray-300">
-                                    ${trx.Tipe} - ${trx.Meja}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                                    ${trx.Tipe}
                                 </span>
-                                <span class="timer-badge text-xs font-mono text-gray-400">
-                                    ${elapsed}m lalu
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-800 text-emerald-400 border border-emerald-900/50">
+                                    ${trx.Meja || '-'}
                                 </span>
+                                <span class="text-[10px] text-slate-500 font-mono ml-auto">${timeElapsed}m</span>
                             </div>
                             <h3 class="text-lg font-bold text-white">${trx.Pelanggan}</h3>
                         </div>
-                        <div class="text-right">
-                             <span class="block text-[10px] text-gray-500 uppercase font-bold">ID</span>
-                             <span class="text-sm font-mono text-gray-300">#${trx.ID_Transaksi.split('-')[1].slice(-4)}</span>
+                        <div class="text-right pl-2">
+                            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Order ID</span>
+                            <span class="text-sm font-mono text-slate-300">#${trx.ID_Transaksi.split('-')[1].slice(-4)}</span>
                         </div>
                     </div>
 
-                    <!-- List Item -->
-                    <div class="p-4 space-y-3 flex-1 overflow-y-auto max-h-[300px]">
+                    <!-- Items List -->
+                    <div class="p-4 space-y-2 flex-1 overflow-y-auto custom-scroll max-h-[240px]">
                         ${items.map(item => `
-                            <div class="flex justify-between items-start bg-gray-700/30 p-2 rounded-lg">
+                            <div class="flex justify-between items-center bg-slate-900/30 p-3 rounded-xl border border-white/5">
                                 <div>
-                                    <p class="font-bold text-white text-sm">${item.Nama}</p>
-                                    ${item.Catatan ? `<p class="text-xs text-yellow-400 italic">* ${item.Catatan}</p>` : ''}
+                                    <p class="font-bold text-slate-100 text-sm">${item.Nama}</p>
+                                    ${item.Catatan ? `<p class="text-[10px] text-yellow-400 italic mt-0.5">* ${item.Catatan}</p>` : ''}
                                 </div>
-                                <span class="bg-red-900/50 text-red-300 text-xs font-bold px-2 py-1 rounded">x${item.qty}</span>
+                                <span class="bg-red-900/30 text-red-300 text-xs font-bold px-2 py-1 rounded-lg">x${item.qty}</span>
                             </div>
                         `).join('')}
                     </div>
 
-                    <!-- Action Footer -->
-                    <div class="p-3 bg-gray-900 border-t border-gray-700">
-                        ${getActionButtons(trx)}
+                    <!-- Actions -->
+                    <div class="p-3 bg-slate-900 border-t border-white/5">
+                        ${renderActionButtons(trx)}
                     </div>
                 </div>
                 `;
@@ -239,26 +379,27 @@
             lucide.createIcons();
         }
 
-        function getActionButtons(trx) {
+        function renderActionButtons(trx) {
+            // Tombol berubah berdasarkan status
             if(trx.Status === 'Menunggu Pembayaran') {
                 return `
-                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Sedang Dimasak')" 
-                    class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Sedang Dimasak', this)" 
+                    class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition transform active:scale-[0.98] shadow-lg shadow-yellow-900/20">
                     <i data-lucide="flame" size="18"></i> MULAI MASAK
                 </button>`;
             } else if (trx.Status === 'Sedang Dimasak') {
                 return `
-                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Siap Saji')" 
-                    class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Siap Saji', this)" 
+                    class="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition transform active:scale-[0.98] shadow-lg shadow-emerald-900/20">
                     <i data-lucide="check" size="18"></i> SELESAI MASAK
                 </button>`;
             } else if (trx.Status === 'Siap Saji') {
                 return `
-                <div class="flex items-center justify-center gap-2 text-green-400 font-bold text-center w-full">
-                    <i data-lucide="bell-ring" class="animate-bounce"></i> MENUNGGU PELAYAN
+                <div class="text-center text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 w-full">
+                    <i data-lucide="bell-ring" class="animate-bounce"></i> SEDANG DIANTAR
                 </div>
-                <!-- Tombol reset khusus staf jika salah masuk -->
-                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Sedang Dimasak')" class="w-full text-xs text-gray-500 hover:text-white mt-2">
+                <button onclick="updateStatus('${trx.ID_Transaksi}', 'Sedang Dimasak', this)" 
+                    class="w-full mt-2 text-[10px] text-slate-500 hover:text-white underline">
                     Kembalikan ke Dapur
                 </button>`;
             }
@@ -274,29 +415,20 @@
             document.getElementById('stat-ready').innerText = ready;
         }
 
-        function refreshData() {
-            syncKitchen();
-        }
-
-        function playNotification() {
-            // Coba putar suara, browser mungkin block autoplay
+        function playSound() {
             try {
-                const audio = document.getElementById('bell-sound');
+                const audio = document.getElementById('notification-sound');
                 audio.volume = 0.5;
-                audio.play().catch(e => console.log("Audio blocked by browser"));
+                audio.play().catch(e => {}); // Ignore browser autoplay blocks
             } catch(e) {}
         }
 
-        function logout() {
-            if(confirm("Keluar dari sistem dapur?")) window.location.href = "index.html";
-        }
-
-        // --- AUTO REFRESH ---
+        // --- INIT & AUTO SYNC ---
         let syncInterval;
         window.addEventListener('load', () => {
-            syncKitchen();
-            // Refresh setiap 10 detik
-            syncInterval = setInterval(syncKitchen, 10000);
+            refreshData();
+            // Refresh setiap 8 detik untuk responsivitas lebih tinggi
+            syncInterval = setInterval(() => refreshData(), 8000);
         });
 
     </script>
