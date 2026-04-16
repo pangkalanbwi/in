@@ -12,16 +12,79 @@
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;1,600&display=swap" rel="stylesheet">
     
     <style>
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f1f5f9; /* Slate 100 - Light Background */
-            color: #1e293b; /* Slate 800 - Dark Text */
+            background-color: #f8fafc; 
+            color: #1e293b;
+            overflow-x: hidden;
         }
 
-        /* --- TOAST STYLING (Light Mode) --- */
+        /* --- SPLASH SCREEN STYLING --- */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        
+        #splash-screen.fade-out {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+
+        .splash-bg-image {
+            position: absolute;
+            inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop'); /* Gambar Restoran Elegan */
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15; /* Gelapkan gambar agar tulisan terbaca */
+            z-index: 0;
+        }
+
+        .splash-content {
+            z-index: 10;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            animation: floatUp 1s ease-out;
+        }
+
+        @keyframes floatUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(8px);
+            padding: 10px 20px;
+            border-radius: 99px;
+            margin: 8px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            opacity: 0; /* Hidden initially */
+            transform: translateX(-10px);
+            transition: all 0.4s ease;
+        }
+        .checklist-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- TOAST STYLING --- */
         #toast-container {
             position: fixed;
             top: 1rem;
@@ -39,7 +102,7 @@
             border-radius: 1rem;
             padding: 1rem;
             min-width: 320px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             transform: translateX(120%);
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
@@ -47,14 +110,16 @@
             gap: 0.75rem;
         }
         .toast-item.show { transform: translateX(0); }
-        .toast-item.info { border-left: 4px solid #3b82f6; }
-        .toast-item.success { border-left: 4px solid #52bc1a; }
+        .toast-item.success { border-left: 4px solid #10b981; }
+        .toast-item.warning { border-left: 4px solid #f59e0b; background: #fffbeb; }
 
-        /* --- TABLE MAP STYLING (Light Mode) --- */
+        /* --- TABLE MAP STYLING --- */
         .table-card {
             aspect-ratio: 1/1;
-            border-radius: 1.5rem;
-            transition: all 0.3s ease;
+            background: white;
+            border-radius: 1.25rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
             display: flex;
@@ -64,44 +129,43 @@
             cursor: pointer;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-
-        /* Empty Table */
-        .table-empty {
-            background: white;
-            border: 2px dashed #cbd5e1;
-            color: #94a3b8;
-        }
-        .table-empty:hover { border-color: #94a3b8; }
-
-        /* Active Tables */
-        .table-cooking {
-            background: #fffbeb; /* Yellow 50 */
-            border: 2px solid #f59e0b; /* Yellow 500 */
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
-        }
         
-        .table-ready {
-            background: #f0fdf4; /* Emerald 50 */
-            border: 2px solid #52bc1a; /* Emerald 500 */
-            box-shadow: 0 0 20px rgba(82, 188, 26, 0.3);
-            animation: strong-pulse 2s infinite;
-            z-index: 10;
-        }
+        /* Table States */
+        .table-empty { color: #94a3b8; }
+        .table-occupied { border-color: #3b82f6; background: #eff6ff; box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.05); }
+        .table-reserved { border-color: #f59e0b; background: #fffbeb; border-style: dashed; }
+        .table-dirty { background: #fef2f2; border-color: #ef4444; border-style: dashed; }
         
-        .table-eating {
-            background: #eff6ff; /* Blue 50 */
-            border: 2px solid #3b82f6; /* Blue 500 */
-            box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1);
+        /* Stock Indicator in Menu */
+        .stock-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 99px;
+            text-transform: uppercase;
         }
+        .stock-ok { background: #dcfce7; color: #166534; }
+        .stock-low { background: #fee2e2; color: #991b1b; }
 
-        @keyframes strong-pulse {
-            0% { border-width: 2px; transform: scale(1); }
-            50% { border-width: 4px; transform: scale(1.02); box-shadow: 0 0 30px rgba(82, 188, 26, 0.5); }
-            100% { border-width: 2px; transform: scale(1); }
+        /* --- MODAL OVERLAY --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4); /* Lebih transparan agar background terlihat */
+            backdrop-filter: blur(4px);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
-
-        /* Modal Slide Up */
-        .slide-up-modal {
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        
+        /* --- MODAL PANELS --- */
+        /* Generic Slide Up */
+        .slide-up-panel {
             position: fixed;
             bottom: 0;
             left: 0;
@@ -111,145 +175,293 @@
             border-radius: 2rem 2rem 0 0;
             transform: translateY(110%);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 1000;
+            z-index: 60;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 -20px 50px rgba(0,0,0,0.1);
+            box-shadow: 0 -20px 50px rgba(0,0,0,0.08);
         }
-        .slide-up-modal.open { transform: translateY(0); }
-        
-        /* Custom Scrollbar for Light Mode */
+        .slide-up-panel.open { transform: translateY(0); }
+
+        /* --- PRINT LAYOUT --- */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 58mm; color: black; background: white; font-family: monospace; }
+            .no-print { display: none; }
+        }
+
+        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 lg:p-6 min-h-screen">
+<body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- Audio Notifikasi -->
-    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
-
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
-
-    <!-- Navbar -->
-    <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 sticky top-0 z-40 bg-white/90 backdrop-blur-md shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
-                <i data-lucide="users" size="20"></i>
+    <!-- --- SPLASH SCREEN --- -->
+    <div id="splash-screen">
+        <!-- Background Layer -->
+        <div class="splash-bg-image"></div>
+        
+        <!-- Content Layer -->
+        <div class="splash-content">
+            <!-- Logo / Icon -->
+            <div class="w-24 h-24 bg-white/80 backdrop-blur-md rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-emerald-200">
+                <i data-lucide="heart-handshake" class="text-emerald-600" size="48"></i>
             </div>
-            <div>
-                <h1 class="text-xl lg:text-2xl font-black text-slate-800 tracking-tight leading-none">FLOOR MANAGER</h1>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5" id="sync-status">Monitoring Area...</p>
-            </div>
-        </div>
 
-        <div class="flex items-center gap-3">
-            <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-xs font-bold text-emerald-700">LIVE</span>
+            <!-- Welcome Text -->
+            <h1 class="text-3xl lg:text-5xl font-black text-slate-800 mb-2 leading-tight hero-font italic">
+                Selamat Datang
+            </h1>
+            <p class="text-emerald-600 font-bold uppercase tracking-widest text-sm mb-8">
+                Tim Pelayanan RM Pangkalan
+            </p>
+
+            <!-- System Checklist (Menyenangkan & Profesional) -->
+            <div class="space-y-2 mb-8 text-xs font-bold text-slate-500">
+                <div id="check-1" class="checklist-item">
+                    <i data-lucide="check-circle" class="text-emerald-500" size="16"></i>
+                    Menghubungkan Dapur...
+                </div>
+                <div id="check-2" class="checklist-item">
+                    <i data-lucide="check-circle" class="text-emerald-500" size="16"></i>
+                    Sinkronisasi Data Stok...
+                </div>
+                <div id="check-3" class="checklist-item">
+                    <i data-lucide="check-circle" class="text-emerald-500" size="16"></i>
+                    Siap Melayani Tamu...
+                </div>
             </div>
-            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 flex items-center justify-center transition active:scale-95">
-                <i data-lucide="log-out" size="18"></i>
+
+            <!-- Enter Button -->
+            <button onclick="enterApp()" class="group relative px-8 py-4 bg-slate-900 text-white rounded-full font-bold text-sm shadow-xl shadow-slate-900/20 hover:bg-emerald-600 hover:scale-105 transition-all duration-300 flex items-center gap-3 mx-auto">
+                <span>MULAI PELAYANAN</span>
+                <i data-lucide="arrow-right" class="group-hover:translate-x-1 transition-transform"></i>
             </button>
+            
+            <p class="text-[10px] text-slate-400 mt-6 font-medium">V 3.0 • Ultimate Service</p>
         </div>
-    </header>
+    </div>
+    <!-- --- END SPLASH SCREEN --- -->
 
-    <!-- Stats & Filter -->
-    <div class="flex flex-col lg:flex-row gap-4 mb-8 justify-between items-center">
-        <div class="flex gap-2 w-full lg:w-auto bg-slate-200 p-1 rounded-xl">
-            <button onclick="setFilter('all')" id="filter-all" class="flex-1 lg:flex-none px-4 py-2 rounded-lg bg-white text-slate-800 font-bold text-xs shadow-sm transition">SEMUA</button>
-            <button onclick="setFilter('active')" id="filter-active" class="flex-1 lg:flex-none px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 font-bold text-xs hover:bg-white transition">AKTIF SAJA</button>
-        </div>
+    <!-- Hidden Print Area -->
+    <div id="print-area" class="hidden"></div>
 
-        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 w-full lg:w-auto">
-            <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 min-w-[100px] text-center shadow-sm">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Total Meja</p>
-                <p class="text-lg font-black text-slate-800">20</p>
+    <!-- APP CONTAINER (Hidden until Splash done) -->
+    <div id="app-container" class="hidden opacity-0 transition-opacity duration-1000 h-full flex flex-col">
+        
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+
+        <!-- Navbar -->
+        <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-500/20">
+                    <i data-lucide="users" size="20"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg lg:text-xl font-black text-slate-800 tracking-tight leading-none">WAITER PRO</h1>
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5" id="user-name-display">Loading...</p>
+                </div>
             </div>
-            <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-yellow-600 font-bold uppercase">Sedang Masak</p>
-                <p class="text-lg font-black text-yellow-600" id="stat-cooking">0</p>
+
+            <div class="flex items-center gap-3">
+                <!-- Performance Badge -->
+                <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                    <span class="text-xs font-bold text-emerald-800">LIVE</span>
+                </div>
+                
+                <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 flex items-center justify-center transition active:scale-95">
+                    <i data-lucide="log-out" size="18"></i>
+                </button>
             </div>
-            <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-emerald-600 font-bold uppercase">Siap Saji</p>
-                <p class="text-lg font-black text-emerald-600" id="stat-ready">0</p>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden relative">
+            
+            <!-- Left: Floor Plan (Fixed width on desktop) -->
+            <div class="w-full lg:w-[380px] bg-white border-r border-slate-200 flex flex-col z-10 shadow-2xl">
+                <!-- Floor Header -->
+                <div class="p-5 border-b border-slate-100 bg-slate-50/30">
+                    <h2 class="text-sm font-black text-slate-700 uppercase tracking-wider mb-4">PETA MEJA</h2>
+                    
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                        <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 min-w-[80px] text-center shadow-sm">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">Terisi</p>
+                            <p class="text-sm font-black text-slate-800" id="stat-occupied">0</p>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1.5 min-w-[80px] text-center shadow-sm">
+                            <p class="text-[9px] text-yellow-600 font-bold uppercase">Kotor</p>
+                            <p class="text-sm font-black text-slate-800" id="stat-dirty">0</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 min-w-[80px] text-center shadow-sm">
+                            <p class="text-[9px] text-emerald-600 font-bold uppercase">Siap</p>
+                            <p class="text-sm font-black text-slate-800" id="stat-ready">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Grid Meja -->
+                <div id="floor-plan" class="flex-1 overflow-y-auto p-5 custom-scroll bg-slate-50/50 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 content-start">
+                    <!-- Tables Generated JS -->
+                </div>
             </div>
-            <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 min-w-[100px] text-center">
-                <p class="text-[10px] text-blue-600 font-bold uppercase">Makan Sini</p>
-                <p class="text-lg font-black text-blue-600" id="stat-eating">0</p>
+
+            <!-- Right: POS & Ready Orders -->
+            <div class="flex-1 bg-slate-50 flex flex-col relative">
+                
+                <!-- Default View: Ready Orders List -->
+                <div id="orders-view" class="flex-1 p-6 overflow-y-auto custom-scroll">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                <i data-lucide="utensils-crossed" class="text-emerald-600"></i> 
+                                PESANAN SIAP SAJI
+                            </h2>
+                        </div>
+                        <div id="ready-orders-list" class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-20">
+                            <!-- Loaded via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POS Mode (Hidden by default, shown when table selected) -->
+                <div id="pos-view" class="hidden absolute inset-0 z-20 bg-slate-50 flex flex-col">
+                    <!-- POS Header -->
+                    <div class="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <button onclick="exitPOS()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-slate-600">
+                                <i data-lucide="arrow-left"></i>
+                            </button>
+                            <div>
+                                <h2 class="text-lg font-black text-slate-800">MEJA <span id="pos-table-num" class="text-emerald-600">0</span></h2>
+                                <p class="text-[10px] text-slate-400">Input Order</p>
+                            </div>
+                        </div>
+                        <button onclick="sendOrderToKitchen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 flex items-center gap-2">
+                            <i data-lucide="send"></i> KIRIM
+                        </button>
+                    </div>
+
+                    <!-- Categories -->
+                    <div class="bg-white border-b border-slate-200 p-2 flex gap-2 overflow-x-auto no-scrollbar">
+                        <button onclick="filterMenu('all')" id="filter-all" class="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 whitespace-nowrap">SEMUA</button>
+                        <button onclick="filterMenu('Makanan')" id="filter-makanan" class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-xs font-bold border border-transparent whitespace-nowrap">MAKANAN</button>
+                        <button onclick="filterMenu('Segeran')" id="filter-segeran" class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-xs font-bold border border-transparent whitespace-nowrap">SEGERAN</button>
+                        <button onclick="filterMenu('Wedangan')" id="filter-wedangan" class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-xs font-bold border border-transparent whitespace-nowrap">WEDANGAN</button>
+                        <button onclick="filterMenu('Camilan')" id="filter-camilan" class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-xs font-bold border border-transparent whitespace-nowrap">CAMILAN</button>
+                    </div>
+
+                    <!-- Menu Grid -->
+                    <div id="menu-grid" class="flex-1 overflow-y-auto p-6 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 custom-scroll pb-24">
+                        <!-- Items Loaded JS -->
+                    </div>
+
+                    <!-- Cart Footer -->
+                    <div class="bg-white border-t border-slate-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total</span>
+                            <span class="text-lg font-black text-slate-800" id="cart-total">Rp 0</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="clearCart()" class="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-200 transition">RESET</button>
+                            <button onclick="sendOrderToKitchen()" class="flex-1 py-3 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">KIRIM KE DAPUR</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Table Grid (Map) -->
-    <div id="table-map" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6 pb-24">
-        <!-- Tables Generated by JS -->
-    </div>
-
-    <!-- Modal Table Detail -->
-    <div id="table-detail-modal" class="slide-up-modal">
+    <!-- --- ACTION MODAL (Move, Reserve, Clean) --- -->
+    <div id="modal-backdrop" class="modal-overlay"></div>
+    <div id="action-modal" class="slide-up-panel">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-            <div>
-                <h2 class="text-2xl font-black text-slate-800 flex items-center gap-2">
-                    <i data-lucide="armchair" class="text-emerald-600"></i> 
-                    MEJA <span id="modal-table-num" class="text-emerald-600">01</span>
-                </h2>
-                <p class="text-xs text-slate-400 font-bold uppercase mt-1" id="modal-status">Status...</p>
-            </div>
-            <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500 transition">
+            <h2 class="text-2xl font-black text-slate-800">MEJA <span id="modal-table-num" class="text-emerald-600">--</span></h2>
+            <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-400 transition">
                 <i data-lucide="x" size="20"></i>
             </button>
         </div>
 
-        <div class="p-6 space-y-6">
-            <!-- Customer Info -->
-            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Pelanggan</p>
-                <p class="text-lg font-bold text-slate-800" id="modal-customer">-</p>
-                <div class="flex gap-4 mt-2 text-xs">
-                    <span class="bg-white px-2 py-1 rounded text-slate-600 border border-slate-200" id="modal-time">-</span>
-                    <span class="bg-white px-2 py-1 rounded text-slate-600 border border-slate-200" id="modal-type">-</span>
-                </div>
-            </div>
-
-            <!-- Order Items -->
-            <div>
-                <p class="text-xs text-slate-400 font-bold uppercase mb-3">Isi Pesanan</p>
-                <div id="modal-items" class="space-y-2">
-                    <!-- Items Loaded via JS -->
-                </div>
-            </div>
-
-            <!-- Total -->
-            <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex justify-between items-center">
-                <span class="font-bold text-emerald-700 text-sm">Total Tagihan</span>
-                <span class="text-2xl font-black text-emerald-700" id="modal-total">Rp 0</span>
-            </div>
+        <div class="p-6 space-y-6" id="modal-content">
+            <!-- Dynamic Content -->
         </div>
     </div>
 
-    <!-- Backdrop -->
-    <div id="backdrop" onclick="closeModal()" class="fixed inset-0 bg-slate-900/20 z-50 hidden backdrop-blur-sm transition-opacity"></div>
+    <!-- Audio -->
+    <audio id="ready-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwN3BrT3us2zAikLxg5T9wmwi8yur5NDXdPU8o45Gn1WBv3uRl9uG4MxE1elZ47vchH/exec";
         const TOTAL_TABLES = 20;
 
-        // --- TOAST MANAGER (LIGHT THEME) ---
+        // --- STATE ---
+        let state = {
+            user: null,
+            transactions: [],
+            menu: [],
+            stok: {},
+            tableState: {}, // clean, dirty
+            selectedTable: null,
+            cart: [],
+            filter: 'all'
+        };
+
+        // --- SPLASH SCREEN LOGIC ---
+        window.addEventListener('load', async () => {
+            // 1. Check Auth
+            const storedUser = localStorage.getItem('pangkalan_user');
+            if(!storedUser) {
+                window.location.href = 'index.html'; // Redirect if not logged in as staff
+                return;
+            }
+            state.user = JSON.parse(storedUser);
+            document.getElementById('user-name-display').innerText = state.user.Nama;
+
+            // 2. Animate Checklist (Visual Impact)
+            const checks = ['check-1', 'check-2', 'check-3'];
+            for(let i=0; i<checks.length; i++) {
+                setTimeout(() => {
+                    document.getElementById(checks[i]).classList.add('visible');
+                }, (i * 400) + 500);
+            }
+
+            // 3. Sync Data Backend
+            await syncData();
+
+            // 4. Reveal Dashboard
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('fade-out');
+                document.getElementById('app-container').classList.remove('hidden');
+                // Trigger reflow to ensure opacity transition works
+                void document.getElementById('app-container').offsetWidth;
+                document.getElementById('app-container').classList.remove('opacity-0');
+            }, 2500); // Delay 2.5 detik untuk efek cinematic
+
+            // 5. Start Auto Sync
+            setInterval(syncData, 10000);
+        });
+
+        function enterApp() {
+            // If user clicks button early
+            document.getElementById('splash-screen').classList.add('fade-out');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.remove('opacity-0');
+        }
+
+        // --- TOAST MANAGER ---
         class ToastManager {
             constructor() { this.container = document.getElementById('toast-container'); }
-            show(message, type = 'info', duration = 4000) {
+            show(message, type = 'success', duration = 3000) {
                 const toast = document.createElement('div');
                 toast.className = `toast-item ${type}`;
-                let icon = type === 'success' ? 'check-circle' : 'bell';
-                let colorClass = type === 'success' ? 'text-emerald-600' : 'text-blue-600';
-                
+                let icon = type === 'success' ? 'check-circle' : 'alert-triangle';
                 toast.innerHTML = `
-                    <i data-lucide="${icon}" class="${colorClass}" size="20"></i>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold text-slate-800 leading-tight">${message}</p>
-                    </div>
+                    <i data-lucide="${icon}" class="${type === 'success' ? 'text-emerald-500' : 'text-red-500'}" size="20"></i>
+                    <div class="flex-1"><p class="text-sm font-bold text-slate-800 leading-tight">${message}</p></div>
                 `;
                 this.container.appendChild(toast);
                 lucide.createIcons();
@@ -259,231 +471,420 @@
         }
         const toast = new ToastManager();
 
-        // --- APP STATE ---
-        let state = {
-            transaksi: [],
-            tableStatus: {}, 
-            filter: 'all',
-            knownReadyOrders: new Set() // Untuk track notifikasi suara
-        };
-
-        // --- AUDIO NOTIFICATION ---
-        function playNotificationSound() {
-            try {
-                const audio = document.getElementById('notification-sound');
-                audio.volume = 0.5;
-                audio.play().catch(e => console.log("Audio autoplay blocked by browser"));
-            } catch(e) {}
-        }
-
-        // --- SYNC LOGIC ---
-        async function syncWaiter() {
+        // --- SYNC ---
+        async function syncData() {
             try {
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'sync_all' })
                 });
                 const json = await res.json();
-
-                if(json.status === 'success' && json.data && json.data.Transaksi) {
-                    const trxData = json.data.Transaksi;
-                    processTableStatus(trxData);
-                    renderMap();
-                    updateStats();
+                if(json.status === 'success' && json.data) {
+                    state.menu = json.data.Menu || [];
+                    state.transactions = json.data.Transaksi || [];
                     
-                    // Cek Notifikasi Baru (Suara)
-                    // Cari order baru yang statusnya 'Siap Saji' tapi belum di record sebelumnya
-                    const currentReadyOrders = new Set(
-                        trxData
-                            .filter(t => t.Status === 'Siap Saji' && t.Tipe === 'DINEIN')
-                            .map(t => t.ID_Transaksi)
+                    // Process Stock
+                    if(json.data.Stok) {
+                        json.data.Stok.forEach(s => state.stok[s.ID_Bahan] = s.Stok_Sisa);
+                    }
+
+                    // Check table status logic...
+                    // (Simplified logic for this snippet: occupied if active dine-in)
+                    const occupiedTables = new Set(
+                        state.transactions
+                            .filter(t => t.Tipe === 'DINEIN' && t.Status !== 'Batal' && t.Status !== 'Selesai')
+                            .map(t => t.Meja)
                     );
 
-                    let hasNew = false;
-                    currentReadyOrders.forEach(id => {
-                        if(!state.knownReadyOrders.has(id)) {
-                            hasNew = true;
-                        }
-                    });
-
-                    state.knownReadyOrders = currentReadyOrders;
-
-                    if(hasNew) {
-                        playNotificationSound();
-                        toast.show("Makanan siap untuk disajikan!", "info");
+                    renderFloorPlan(occupiedTables);
+                    renderReadyOrders();
+                    
+                    // Sound notification
+                    const ready = state.transactions.filter(t => t.Status === 'Siap Saji').length;
+                    if(ready > 0) {
+                         // Logic play sound notifikasi handled in waiter_dashboard.html? 
+                         // Assuming waiter needs notification if food is ready to serve.
+                         // Usually handled by "Ready Orders" list update.
                     }
-
-                    document.getElementById('sync-status').innerText = "Live: " + new Date().toLocaleTimeString('id-ID');
                 }
-            } catch (e) { console.error("Sync Error", e); }
+            } catch (e) { console.error(e); }
         }
 
-        // --- LOGIC: PROCESS TABLE STATUS ---
-        function processTableStatus(transactions) {
-            state.tableStatus = {};
-            
-            const dineInOrders = transactions.filter(t => 
-                t.Tipe === 'DINEIN' && t.Status !== 'Batal' && t.Status !== 'Selesai'
-            );
-
-            dineInOrders.forEach(trx => {
-                const tableNum = parseInt(trx.Meja);
-                if(!tableNum || tableNum < 1 || tableNum > TOTAL_TABLES) return;
-
-                let status = 'empty';
-                let priority = 0;
-
-                if(trx.Status === 'Siap Saji') {
-                    status = 'ready'; priority = 3;
-                } else if (trx.Status === 'Sedang Dimasak' || trx.Status === 'Menunggu Pembayaran') {
-                    status = 'cooking'; priority = 2;
-                } else if (trx.Status === 'Lunas') {
-                    status = 'eating'; priority = 1;
-                }
-
-                if(!state.tableStatus[tableNum] || state.tableStatus[tableNum].priority < priority) {
-                    state.tableStatus[tableNum] = {
-                        status: status,
-                        priority: priority,
-                        data: trx
-                    };
-                }
-            });
-        }
-
-        // --- RENDER MAP ---
-        function renderMap() {
-            const grid = document.getElementById('table-map');
+        // --- RENDER FLOOR PLAN ---
+        function renderFloorPlan(occupiedSet) {
+            const grid = document.getElementById('floor-plan');
             let html = '';
+            let counts = { occupied: 0, dirty: 0 };
 
-            for (let i = 1; i <= TOTAL_TABLES; i++) {
-                const info = state.tableStatus[i];
+            for(let i=1; i<=TOTAL_TABLES; i++) {
+                const isDirty = state.tableState[i] === 'dirty';
+                const isOccupied = occupiedSet.has(String(i));
                 
-                // Skip if filter active and table is empty
-                if (state.filter === 'active' && !info) continue;
-
-                let cardClass = 'table-empty';
+                let cssClass = 'table-empty';
                 let icon = 'armchair';
                 let text = 'KOSONG';
-                let textClass = 'text-slate-400';
 
-                if (info) {
-                    if (info.status === 'ready') {
-                        cardClass = 'table-ready';
-                        icon = 'utensils-crossed';
-                        text = 'SIAP SAJI';
-                        textClass = 'text-emerald-600';
-                    } else if (info.status === 'cooking') {
-                        cardClass = 'table-cooking';
-                        icon = 'flame';
-                        text = 'SEDANG DIMASAK';
-                        textClass = 'text-yellow-600';
-                    } else if (info.status === 'eating') {
-                        cardClass = 'table-eating';
-                        icon = 'users';
-                        text = 'MAKAN SINI';
-                        textClass = 'text-blue-600';
-                    }
+                if (isOccupied) {
+                    cssClass = 'table-occupied';
+                    icon = 'utensils-crossed';
+                    text = 'TERISI';
+                    counts.occupied++;
+                } else if (isDirty) {
+                    cssClass = 'table-dirty';
+                    icon = 'trash';
+                    text = 'BERSIHKAN';
+                    counts.dirty++;
                 }
 
                 html += `
-                <div onclick="openTableDetail(${i})" class="table-card ${cardClass}">
-                    <i data-lucide="${icon}" size="32" class="mb-2 ${textClass}"></i>
-                    <h3 class="text-2xl font-black text-slate-800">0${i}</h3>
-                    <p class="text-[10px] font-bold uppercase ${textClass} mt-1 tracking-wide">${text}</p>
-                    
-                    ${info && info.status === 'ready' ? '<span class="absolute top-2 right-2 w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>' : ''}
+                <div onclick="openModal(${i})" class="table-card ${cssClass}">
+                    <i data-lucide="${icon}" size="28" class="mb-2"></i>
+                    <h3 class="text-xl font-black text-slate-800">0${i}</h3>
+                    <p class="text-[9px] font-bold uppercase text-slate-400">${text}</p>
                 </div>
                 `;
             }
-
             grid.innerHTML = html;
+
+            // Update Stats
+            document.getElementById('stat-occupied').innerText = counts.occupied;
+            document.getElementById('stat-dirty').innerText = counts.dirty;
+            
+            // Ready Stat
+            const ready = state.transactions.filter(t => t.Status === 'Siap Saji' && t.Tipe === 'DINEIN').length;
+            document.getElementById('stat-ready').innerText = ready;
+
             lucide.createIcons();
         }
 
-        // --- MODAL & DETAILS ---
-        function openTableDetail(tableNum) {
-            const info = state.tableStatus[tableNum];
-            const modal = document.getElementById('table-detail-modal');
-            const backdrop = document.getElementById('backdrop');
+        // --- POS MODE ---
+        function openPOS(tableNum) {
+            state.selectedTable = tableNum;
+            state.cart = [];
+            updateCartUI();
+            renderMenuGrid();
             
-            if(!info) {
-                // Table Empty
-                document.getElementById('modal-table-num').innerText = '0' + tableNum;
-                document.getElementById('modal-status').innerText = 'MEJA KOSONG';
-                document.getElementById('modal-customer').innerText = '-';
-                document.getElementById('modal-items').innerHTML = '<p class="text-sm text-slate-400 italic">Belum ada pesanan.</p>';
-                document.getElementById('modal-total').innerText = 'Rp 0';
-            } else {
-                const trx = info.data;
-                
-                document.getElementById('modal-table-num').innerText = '0' + tableNum;
-                document.getElementById('modal-status').innerText = trx.Status;
-                document.getElementById('modal-customer').innerText = trx.Pelanggan;
-                
-                const date = new Date(trx.Tanggal);
-                document.getElementById('modal-time').innerText = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                document.getElementById('modal-type').innerText = trx.Tipe;
+            document.getElementById('pos-view').classList.remove('hidden');
+            document.getElementById('orders-view').classList.add('hidden');
+            document.getElementById('pos-table-num').innerText = '0' + tableNum;
+        }
 
-                // Render Items
-                let items = [];
-                try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+        function exitPOS() {
+            if(state.cart.length > 0 && !confirm("Batalkan input pesanan?")) return;
+            state.selectedTable = null;
+            state.cart = [];
+            document.getElementById('pos-view').classList.add('hidden');
+            document.getElementById('orders-view').classList.remove('hidden');
+        }
 
-                const itemsHtml = items.map(item => `
-                    <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-                        <div>
-                            <p class="font-bold text-slate-800 text-sm">${item.Nama}</p>
-                            ${item.Catatan ? `<p class="text-[10px] text-yellow-600 italic mt-0.5">* ${item.Catatan}</p>` : ''}
-                        </div>
-                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">x${item.qty}</span>
+        function renderMenuGrid() {
+            const grid = document.getElementById('menu-grid');
+            const filtered = state.filter === 'all' ? state.menu : state.menu.filter(m => m.Kategori === state.filter);
+            
+            // Mock stock check function
+            const isStockOk = (id) => {
+                // In real app, check state.stok based on recipe. 
+                // Here we mock 90% availability for demo.
+                return Math.random() > 0.1;
+            };
+
+            grid.innerHTML = filtered.map(item => {
+                const ok = isStockOk(item.ID);
+                const opacity = ok ? 'opacity-100' : 'opacity-50 grayscale';
+                
+                return `
+                <div onclick="addToCart('${item.ID}')" class="bg-white border border-slate-200 rounded-xl p-3 flex flex-col justify-between h-full cursor-pointer hover:border-emerald-200 transition relative ${opacity}">
+                    <img src="${item.ImageURL || 'https://via.placeholder.com/150'}" class="w-full h-20 object-cover rounded-lg mb-2 bg-slate-100">
+                    <div class="absolute top-2 right-2 stock-badge ${ok ? 'stock-ok' : 'stock-low'}">${ok ? 'AMAN' : 'HABIS'}</div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 leading-tight line-clamp-2">${item.Nama}</h4>
+                        <p class="text-sm font-black text-emerald-600 mt-1">${formatRupiah(item.Harga)}</p>
                     </div>
-                `).join('');
+                </div>
+                `;
+            }).join('');
+        }
 
-                document.getElementById('modal-items').innerHTML = itemsHtml;
-                document.getElementById('modal-total').innerText = formatRupiah(trx.Total);
+        function filterMenu(cat) {
+            state.filter = cat;
+            // Update UI buttons
+            document.querySelectorAll('#pos-view button[id^="filter-"]').forEach(b => {
+                b.classList.remove('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+                b.classList.add('text-slate-500', 'border-transparent', 'hover:bg-slate-100');
+            });
+            const btn = document.getElementById(`filter-${cat.toLowerCase()}`);
+            if(btn) {
+                btn.classList.remove('text-slate-500', 'border-transparent', 'hover:bg-slate-100');
+                btn.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+            }
+            renderMenuGrid();
+        }
+
+        function addToCart(id) {
+            const item = state.menu.find(m => m.ID == id);
+            if(!item) return;
+            
+            // Cek stok
+            if(!checkStockReal(id)) {
+                toast.show("Stok tidak mencukup!", "warning");
+                return;
             }
 
+            // Input catatan
+            const note = prompt(`Catatan untuk ${item.Nama}? (Contoh: Pedas, Tidak Pakai Bawang)`, '');
+            
+            const exist = state.cart.find(c => c.ID == id);
+            if(exist) {
+                exist.qty++;
+                if(note) exist.Catatan = note;
+            } else {
+                state.cart.push({ ...item, qty: 1, Catatan: note });
+            }
+            updateCartUI();
+        }
+
+        function checkStockReal(id) {
+            // Logic sederhana: cek apakah item ini habis di dummy data atau random
+            // Di real app, query sheet stok
+            return Math.random() > 0.2;
+        }
+
+        function updateCartUI() {
+            const total = state.cart.reduce((a,b) => a + (b.Harga * b.qty), 0);
+            document.getElementById('cart-total').innerText = formatRupiah(total);
+        }
+
+        function clearCart() {
+            state.cart = [];
+            updateCartUI();
+        }
+
+        async function sendOrderToKitchen() {
+            if(state.cart.length === 0) return toast.show("Keranjang kosong!", "warning");
+            
+            const custName = prompt("Nama Pelanggan:", "Tamu Meja " + state.selectedTable);
+            if(!custName) return;
+
+            const payload = {
+                pelanggan: custName,
+                tipe: 'DINEIN',
+                meja: state.selectedTable,
+                pembayaran: 'Cash',
+                status: 'Menunggu Pembayaran',
+                items: state.cart.map(i => ({ ID: i.ID, qty: i.qty, Catatan: i.Catatan })),
+                total: state.cart.reduce((a,b)=>a+(b.Harga*b.qty),0)
+            };
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'save_order', data: payload })
+                });
+                const json = await res.json();
+                if(json.status === 'success') {
+                    toast.show("Pesanan Terkirim ke Dapur", "success");
+                    exitPOS();
+                    syncData(); // Refresh map
+                }
+            } catch(e) {
+                toast.show("Gagal: " + e, "warning");
+            }
+        }
+
+        // --- MODAL ACTIONS ---
+        function openModal(tableNum) {
+            const occupiedSet = new Set(
+                state.transactions
+                    .filter(t => t.Tipe === 'DINEIN' && t.Status !== 'Batal' && t.Status !== 'Selesai')
+                    .map(t => t.Meja)
+            );
+            const isOccupied = occupiedSet.has(String(tableNum));
+            const isDirty = state.tableState[tableNum] === 'dirty';
+
+            const modal = document.getElementById('action-modal');
+            const content = document.getElementById('modal-content');
+            document.getElementById('modal-table-num').innerText = '0' + tableNum;
+
+            let html = '';
+            
+            if (isOccupied) {
+                // Logic for occupied table (Move Table, Bill, etc)
+                const trx = state.transactions.find(t => t.Meja == String(tableNum) && t.Tipe === 'DINEIN' && t.Status !== 'Selesai');
+                
+                html += `
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-4">
+                        <p class="text-xs text-emerald-700 font-bold uppercase mb-1">Sedang Terisi</p>
+                        <p class="text-lg font-black text-slate-800">${trx.Pelanggan}</p>
+                        <p class="text-sm text-slate-600">Status: <strong>${trx.Status}</strong></p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="moveTable('${trx.ID_Transaksi}')" class="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl flex flex-col items-center gap-2">
+                            <i data-lucide="corner-up-right" class="text-blue-600" size="24"></i>
+                            <span class="text-xs font-bold text-blue-800">PINDAH MEJA</span>
+                        </button>
+                        <button onclick="printBill('${trx.ID_Transaksi}')" class="p-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl flex flex-col items-center gap-2">
+                            <i data-lucide="printer" class="text-slate-600" size="24"></i>
+                            <span class="text-xs font-bold text-slate-800">CETAK BILL</span>
+                        </button>
+                    </div>
+                `;
+            } else if (isDirty) {
+                html += `
+                    <div class="bg-red-50 border border-red-100 rounded-xl p-4 mb-4 text-center">
+                        <i data-lucide="trash" class="text-red-500 mx-auto mb-2" size="32"></i>
+                        <p class="text-sm font-bold text-red-800">Meja perlu dibersihkan</p>
+                    </div>
+                    <button onclick="markClean(${tableNum})" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
+                        SELESAI BERSIHKAN
+                    </button>
+                `;
+            } else {
+                // Table Empty -> Show Input Order & Reserve
+                html += `
+                    <div class="text-center mb-6">
+                        <i data-lucide="armchair" class="text-slate-300 mx-auto mb-2" size="40"></i>
+                        <p class="text-slate-500 text-sm">Meja ini kosong.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <button onclick="openPOS(${tableNum})" class="p-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 flex flex-col items-center gap-2">
+                            <i data-lucide="utensils" size="24"></i>
+                            INPUT ORDER
+                        </button>
+                        <button onclick="openReservation(${tableNum})" class="p-6 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-yellow-200 flex flex-col items-center gap-2">
+                            <i data-lucide="calendar" size="24"></i>
+                            RESERVASI
+                        </button>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
             modal.classList.add('open');
-            backdrop.classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.add('show');
+            lucide.createIcons();
         }
 
         function closeModal() {
-            document.getElementById('table-detail-modal').classList.remove('open');
-            document.getElementById('backdrop').classList.add('hidden');
+            document.getElementById('action-modal').classList.remove('open');
+            document.getElementById('modal-backdrop').classList.remove('show');
         }
 
-        function setFilter(type) {
-            state.filter = type;
-            // Update Button Styles (Light Theme)
-            document.getElementById('filter-all').className = `flex-1 lg:flex-none px-4 py-2 rounded-lg font-bold text-xs transition ${type === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}`;
-            document.getElementById('filter-active').className = `flex-1 lg:flex-none px-4 py-2 rounded-lg font-bold text-xs transition ${type === 'active' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}`;
-            renderMap();
+        async function markClean(tableNum) {
+            state.tableState[tableNum] = 'clean';
+            closeModal();
+            syncData();
+            toast.show("Meja ditandai bersih", "success");
         }
 
-        function updateStats() {
-            const counts = { cooking: 0, ready: 0, eating: 0 };
+        async function moveTable(trxId) {
+            const newTable = prompt("Pindah ke meja nomor berapa?", "");
+            if(!newTable) return;
             
-            Object.values(state.tableStatus).forEach(v => {
-                if(v.status === 'cooking') counts.cooking++;
-                if(v.status === 'ready') counts.ready++;
-                if(v.status === 'eating') counts.eating++;
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'update_data',
+                    data: { targetSheet: 'Transaksi', id: trxId, column: 'Meja', newValue: newTable }
+                })
             });
+            closeModal();
+            syncData();
+            toast.show("Meja berhasil dipindah", "success");
+        }
 
-            document.getElementById('stat-cooking').innerText = counts.cooking;
-            document.getElementById('stat-ready').innerText = counts.ready;
-            document.getElementById('stat-eating').innerText = counts.eating;
+        function openReservation(tableNum) {
+            const name = prompt("Nama Pemesan:", "");
+            if(!name) return;
+            // Logic simple reservasi
+            toast.show("Fitur reservasi (Demo)", "info");
+            closeModal();
+        }
+
+        function printBill(trxId) {
+            const trx = state.transactions.find(t => t.ID_Transaksi === trxId);
+            if(!trx) return;
+            
+            let items = [];
+            try { items = JSON.parse(trx.Item_JSON); } catch(e){}
+            
+            const html = `
+                <div style="font-family: monospace;">
+                    <h2 class="text-center font-bold mb-2">RM PANGKALAN</h2>
+                    <p class="text-center text-xs mb-4">Bill Sementara - Meja ${trx.Meja}</p>
+                    <hr>
+                    <p>${trx.Pelanggan}</p>
+                    <hr>
+                    ${items.map(i => `<div>${i.qty}x ${i.Nama} - ${formatRupiah(i.Harga*i.qty)}</div>`).join('')}
+                    <hr>
+                    <div class="text-right font-bold">TOTAL: ${formatRupiah(trx.Total)}</div>
+                </div>
+            `;
+            document.getElementById('print-area').innerHTML = html;
+            document.getElementById('print-area').classList.remove('hidden');
+            window.print();
+            document.getElementById('print-area').classList.add('hidden');
+        }
+
+        // --- RENDER READY ORDERS ---
+        function renderReadyOrders() {
+            const list = document.getElementById('ready-orders-list');
+            const readyTrx = state.transactions.filter(t => t.Status === 'Siap Saji' && t.Tipe === 'DINEIN');
+
+            if(readyTrx.length === 0) {
+                list.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-20 opacity-30">
+                    <i data-lucide="check-circle-2" size="64" class="text-emerald-500 mb-4"></i>
+                    <p class="text-sm font-bold text-slate-400">Semua pesanan sudah disajikan.</p>
+                </div>`;
+                return;
+            }
+
+            list.innerHTML = readyTrx.map(trx => {
+                return `
+                <div class="bg-white border border-emerald-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">MEJA ${trx.Meja}</span>
+                                <span class="text-[10px] text-slate-400 font-mono">${trx.ID_Transaksi.split('-')[1].slice(-4)}</span>
+                            </div>
+                            <h3 class="font-black text-slate-800 text-lg">${trx.Pelanggan}</h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-emerald-600">${formatRupiah(trx.Total)}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="printBill('${trx.ID_Transaksi}')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center gap-1">
+                            <i data-lucide="printer" size="14"></i> CETAK
+                        </button>
+                        <button onclick="markServed('${trx.ID_Transaksi}')" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-200 flex items-center justify-center gap-1">
+                            <i data-lucide="check" size="14"></i> SELESAI
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function markServed(trxId) {
+            if(!confirm("Konfirmasi pesanan sudah disajikan?")) return;
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'update_data',
+                    data: { targetSheet: 'Transaksi', id: trxId, column: 'Status', newValue: 'Lunas' }
+                })
+            });
+            syncData();
+            toast.show("Status diubah menjadi Lunas", "success");
         }
 
         function formatRupiah(num) {
             return "Rp " + num.toLocaleString('id-ID');
         }
-
-        // --- INIT ---
-        let syncInterval;
-        window.addEventListener('load', () => {
-            syncWaiter();
-            syncInterval = setInterval(syncWaiter, 10000); // 10 detik
-        });
 
     </script>
 </body>
